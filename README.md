@@ -1,1 +1,1 @@
-![Metrics](https://metrics.lecoq.io/YangMame)
+![Metrics](/github-metrics.svg)
