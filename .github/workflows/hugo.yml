@@ -32,7 +32,11 @@ jobs:
         uses: actions/configure-pages@v6
       - name: Build deployment
         if: github.event_name != 'pull_request'
-        run: hugo --minify --baseURL '${{ steps.pages.outputs.base_url }}/'
+        env:
+          PAGES_BASE_URL: ${{ steps.pages.outputs.base_url }}
+        run: |
+          BASE_URL="${PAGES_BASE_URL%/}"
+          hugo --minify --baseURL "${BASE_URL/#http:/https:}/"
       - uses: actions/upload-pages-artifact@v5
         if: github.event_name != 'pull_request'
         with:
