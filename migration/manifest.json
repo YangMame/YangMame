@@ -1,0 +1,221 @@
+{
+  "contents": [
+    {
+      "id": 4,
+      "title": "友链",
+      "url": "/友链.html",
+      "file": "content/pages/4.md",
+      "source_body_sha256": "7876d2aceb9261ee30a40d9ab2393de82f45c42f0b30d82798b8d92b905a9257"
+    },
+    {
+      "id": 6,
+      "title": "Gentoo的一次系统更新记录",
+      "url": "/2022-gentoo-upgrade-log.html",
+      "file": "content/posts/6.html",
+      "source_body_sha256": "7218f3acc455cfbc7aa2aa526d4a9d5eb0607e5becbfb91079eb14ce41944d77"
+    },
+    {
+      "id": 7,
+      "title": "Linux下如何合理利用SSD和HDD",
+      "url": "/linux-with-ssd-and-hdd.html",
+      "file": "content/posts/7.html",
+      "source_body_sha256": "d7d20bf13e47c9323637976bcf73a229df1acfa67b145de976fb59ae0c8e5706"
+    },
+    {
+      "id": 8,
+      "title": "LG Gram 上手",
+      "url": "/lg-gram.html",
+      "file": "content/posts/8.html",
+      "source_body_sha256": "313af867b1fdbb29725bff89356eb0c189f8c6a4c3ba631c72e1c09116181366"
+    },
+    {
+      "id": 9,
+      "title": "这年头该用啥代理？",
+      "url": "/proxy.html",
+      "file": "content/posts/9.html",
+      "source_body_sha256": "8931303980fe8ab0c7337815192338be9fb98cf8426c44144c3d9792951d6cf4"
+    },
+    {
+      "id": 10,
+      "title": "关于内核的一些配置",
+      "url": "/关于内核的一些配置.html",
+      "file": "content/posts/10.html",
+      "source_body_sha256": "6aa94d8ecd414585fda41d275ee82da48c4d482ed34ad18da68e4ca48d6eb4da"
+    },
+    {
+      "id": 11,
+      "title": "DEB打包：快速构建一个Meta Package",
+      "url": "/deb-meta-package.html",
+      "file": "content/posts/11.html",
+      "source_body_sha256": "439d0969ec032fd04a7f4e55cd004727774b6127ac0743a2c50276e11efaa696"
+    },
+    {
+      "id": 12,
+      "title": "极限建站",
+      "url": "/极限建站.html",
+      "file": "content/posts/12.html",
+      "source_body_sha256": "531bb281b7bfe898ab989c22cb9aad436c2c37a23e0d2730975c4616aa335969"
+    },
+    {
+      "id": 14,
+      "title": "在U盘安装加密的Linux系统",
+      "url": "/在U盘安装加密的Linux系统.html",
+      "file": "content/posts/14.html",
+      "source_body_sha256": "3fa0c5882834875a96d7f2538a74890a8859e502d7b1731b5653862596e0e87a"
+    },
+    {
+      "id": 15,
+      "title": "Gentoo安装教程",
+      "url": "/Gentoo安装教程.html",
+      "file": "content/posts/15.html",
+      "source_body_sha256": "d7099abe2384dd6ad354be94d3aae6cc196423c935ba5259aeb7e1dd5b6a3786"
+    },
+    {
+      "id": 16,
+      "title": "为树莓派3B交叉编译安装Gentoo",
+      "url": "/Gentoo-rpi3.html",
+      "file": "content/posts/16.html",
+      "source_body_sha256": "314ca357d3ee6bc0da0540be8dbf0435f7dd617ca6180d9988aa0fbf6bc42e84"
+    },
+    {
+      "id": 18,
+      "title": "入坑KeePassXC",
+      "url": "/keepassxc.html",
+      "file": "content/posts/18.html",
+      "source_body_sha256": "37a3380eb534a9b801290154b601c2210a90c1c34d201b0a34ef9e17f39e7ece"
+    },
+    {
+      "id": 19,
+      "title": "善用搜索",
+      "url": "/善用搜索.html",
+      "file": "content/posts/19.html",
+      "source_body_sha256": "8b500925024bcdaf750bbeab70dc16e48e50ec1e22abc773b121f748b82dda4c"
+    },
+    {
+      "id": 20,
+      "title": "红米刷机之路",
+      "url": "/红米刷机之路.html",
+      "file": "content/posts/20.html",
+      "source_body_sha256": "8a41b8a54f3c920a3fd2804371a626773b865646d2ca6857454f96c679b07095"
+    },
+    {
+      "id": 21,
+      "title": "红米Note5评测",
+      "url": "/红米Note5评测.html",
+      "file": "content/posts/21.html",
+      "source_body_sha256": "4aef17bb431d2be7a0b9d1fbe83075311c2e72aa95c5a7ab06c69cc7475560ce"
+    },
+    {
+      "id": 22,
+      "title": "lFS安装教程",
+      "url": "/lFS安装教程.html",
+      "file": "content/posts/22.html",
+      "source_body_sha256": "b7e58d1e4ab67fbddeb95ef0f3d8acc8bcfb6bb85a415645fc8b47bc953106d3"
+    },
+    {
+      "id": 23,
+      "title": "树梅派安装Gentoo",
+      "url": "/树梅派安装Gentoo.html",
+      "file": "content/posts/23.html",
+      "source_body_sha256": "825e36398a411dd83eac57f4411ef2fb887c1910b727c8f79effbde1f989226d"
+    },
+    {
+      "id": 24,
+      "title": "mpd+ncmpcpp配置美化教程",
+      "url": "/mpd-ncmpcpp配置美化教程.html",
+      "file": "content/posts/24.html",
+      "source_body_sha256": "175d51e8378684e0847dda8d6e3bcfc724dbf1a3c8cdae034555f24264bc5785"
+    },
+    {
+      "id": 25,
+      "title": "Gentoo unstable stage3",
+      "url": "/gentoo-unstable-stage3.html",
+      "file": "content/posts/25.html",
+      "source_body_sha256": "e5a65c7c7c4dc5b575fd2ea6e69795ec2b4f2515b4dcd951682da2e3eae192d9"
+    },
+    {
+      "id": 26,
+      "title": "暗网没有那么神秘",
+      "url": "/暗网没有那么神秘.html",
+      "file": "content/posts/26.html",
+      "source_body_sha256": "8d87c18c33e10a70c815301861ac46f56998be6e87a124c0f9cde67b7d10278c"
+    },
+    {
+      "id": 27,
+      "title": "Linux内核配置指南-General-setup",
+      "url": "/Linux内核配置指南-General-setup.html",
+      "file": "content/posts/27.html",
+      "source_body_sha256": "2cbb8e75a217e8393a910d70f5e25527219bea6039ec32e3b486f3985fd0fd88"
+    },
+    {
+      "id": 28,
+      "title": "Linux内核配置指南-Gentoo-Linux-support",
+      "url": "/Linux内核配置指南-Gentoo-Linux-support.html",
+      "file": "content/posts/28.html",
+      "source_body_sha256": "5be3fb55fbd7cd85bd30b68b5648a00c67dd120fed80ab984c1aa415a824d734"
+    },
+    {
+      "id": 29,
+      "title": "友链",
+      "url": "/友链-1.html",
+      "file": "content/posts/29.html",
+      "source_body_sha256": "1fbf5551b343f6f4e9c75d88644831eccf32013cc17bb8f59cfe79959a6ff1d6"
+    },
+    {
+      "id": 30,
+      "title": "歌单",
+      "url": "/歌单.html",
+      "file": "content/posts/30.html",
+      "source_body_sha256": "e48d94a9992e13a97f31eb3fab01f641f670e51276d89d82d11c12dff43ae0b5"
+    },
+    {
+      "id": 31,
+      "title": "支持",
+      "url": "/支持.html",
+      "file": "content/posts/31.html",
+      "source_body_sha256": "bd27c682bf1153a5b80659f5a3dc759ee2a401c558f565df61cbe13fc4149399"
+    },
+    {
+      "id": 32,
+      "title": "联系",
+      "url": "/联系.html",
+      "file": "content/posts/32.html",
+      "source_body_sha256": "86161572504316f2244f47b86ca01faead3c4dfef4f5739ac0b798f20d79a38c"
+    }
+  ],
+  "assets": [
+    {
+      "path": "/usr/uploads/2018/03/257160541.png",
+      "source": "https://web.archive.org/web/20250714161437im_/https://blog.yangmame.org/usr/uploads/2018/03/257160541.png",
+      "bytes": 62856,
+      "sha256": "fe0265e8d67b15c74b5d21ed3dd57b85f78806171078c58a6acec67cef47754e"
+    },
+    {
+      "path": "/usr/uploads/2018/03/3669318201.png",
+      "source": "https://web.archive.org/web/20250814081612im_/https://blog.yangmame.org/usr/uploads/2018/03/3669318201.png",
+      "bytes": 1159943,
+      "sha256": "051bd2aedcb85235b1bb1a195ad81791cbe2b5b9b1eeabe9e14ddbcb7c35c8e2"
+    },
+    {
+      "path": "/usr/uploads/2018/06/1172779709.png",
+      "source": "https://web.archive.org/web/20250524232712im_/https://blog.yangmame.org/usr/uploads/2018/06/1172779709.png",
+      "bytes": 153819,
+      "sha256": "59ab3f8231d72a962eae0f81916235295c077da3bf812cd717edecc038245e23"
+    },
+    {
+      "path": "/usr/uploads/2018/09/3255756385.png",
+      "source": "https://web.archive.org/web/20250714161437im_/https://blog.yangmame.org/usr/uploads/2018/09/3255756385.png",
+      "bytes": 62331,
+      "sha256": "69749b3d018f8f02f58d4a3c24bdba1e363ac5e13cab4e69611e032d9223cefb"
+    },
+    {
+      "path": "/usr/uploads/2019/06/805646452.txt",
+      "source": "https://web.archive.org/web/20250714145550/https://blog.yangmame.org/usr/uploads/2019/06/805646452.txt",
+      "bytes": 159226,
+      "sha256": "634b39b2ac629b698c50d98847c29c9b74a3b2d4d2f00a90c71473dec587b4d9"
+    }
+  ],
+  "notes": [
+    "No category relationships or comments in supplied backup."
+  ]
+}

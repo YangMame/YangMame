@@ -1,0 +1,51 @@
+name: Hugo Pages
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['README.md', 'github-metrics.svg']
+  pull_request:
+    paths-ignore: ['README.md', 'github-metrics.svg']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hugo-pages-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      HUGO_VERSION: 0.166.0
+      TZ: Asia/Shanghai
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Hugo
+        run: |
+          curl --fail --location --retry 3 -o "$RUNNER_TEMP/hugo.tar.gz" "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_${HUGO_VERSION}_linux-amd64.tar.gz"
+          tar -xzf "$RUNNER_TEMP/hugo.tar.gz" -C "$RUNNER_TEMP" hugo
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - name: Test migration and build both URLs
+        run: python3 scripts/verify.py
+      - name: Configure Pages
+        if: github.event_name != 'pull_request'
+        id: pages
+        uses: actions/configure-pages@v5
+      - name: Build deployment
+        if: github.event_name != 'pull_request'
+        run: hugo --minify --baseURL '${{ steps.pages.outputs.base_url }}/'
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

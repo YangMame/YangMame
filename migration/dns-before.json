@@ -1,0 +1,35 @@
+{
+  "checked_at": "2026-09-22T12:03:29.130117+00:00",
+  "name": "blog.yangmame.org",
+  "records": {
+    "CNAME": [],
+    "A": [
+      {
+        "name": "blog.yangmame.org.",
+        "type": 1,
+        "TTL": 300,
+        "data": "104.21.80.207"
+      },
+      {
+        "name": "blog.yangmame.org.",
+        "type": 1,
+        "TTL": 300,
+        "data": "172.67.153.202"
+      }
+    ],
+    "AAAA": [
+      {
+        "name": "blog.yangmame.org.",
+        "type": 28,
+        "TTL": 300,
+        "data": "2606:4700:3031::ac43:99ca"
+      },
+      {
+        "name": "blog.yangmame.org.",
+        "type": 28,
+        "TTL": 300,
+        "data": "2606:4700:3032::6815:50cf"
+      }
+    ]
+  }
+}

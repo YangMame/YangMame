@@ -1,0 +1,10 @@
+{
+  "title": "入坑KeePassXC",
+  "date": "2018-06-26T00:20:00+08:00",
+  "lastmod": "2026-04-19T23:15:03+08:00",
+  "url": "/keepassxc.html",
+  "type": "posts",
+  "original_slug": "keepassxc",
+  "typecho_id": 18
+}
+<p>xxx数据被爆，泄漏密码。。。这种新闻应该经常听说了。。。</p><p>于是最近一口气把我所有网站的帐号都换了密码，邮箱和电话，然后就找到了KeePass这个东西，可以用来管理生成密码。</p><p>但是我用了一下发现这货界面在Linux上太难看了，而且是C#写的所以在Gentoo上依赖巨硬的mono环境</p><p>于是乎我又去寻了一遍，有人推荐了KeePassX，但是在Gentoo上已经被删除了，上一次更新也是在2016年，最后终于发现了KeePassXC这个玩意儿</p><p>官网：<a href="https://web.archive.org/web/20250524232712/https://keepassxc.org/">https://keepassxc.org/</a></p><p>各大主流发行版都可以通过包管理安装</p><p>界面看样子是qt写的</p><p>启动时会让你选择或新建数据库，这时候你可以导入之前的。</p><p>它会让你设置名称，描述，主密码和默认用户名，还有个可选的使用密钥可以进一步提高安全性。</p><p>对于加密，我用的加密算法是ChaCha20</p><p>导出函数用的Argon2（即推荐项（不然可能不能被其它软件正常导入</p><p>加密次数用测试的值就行</p><p>内存占用保持默认就行</p><p>线程数和CPU核心数相同就行</p><p>这个时候就可以开始管理/选择目录添加帐号密码了</p><p>大概如下：</p><p><img src="{{< siteurl "usr/uploads/2018/06/1172779709.png" >}}" alt="屏幕截图.png" title="屏幕截图.png"></p><p>KeePassXC也支持<a href="https://web.archive.org/web/20250524232712/https://zh.wikipedia.org/zh-hans/%E5%9F%BA%E4%BA%8E%E6%97%B6%E9%97%B4%E7%9A%84%E4%B8%80%E6%AC%A1%E6%80%A7%E5%AF%86%E7%A0%81%E7%AE%97%E6%B3%95">TOTP</a>  ;)</p><p>对了，它还有浏览器插件，用它就可以在电脑浏览器里自动填写密码了，具体自己研究吧）</p><p>关于手机客户端：用<a href="https://web.archive.org/web/20250524232712/https://github.com/PhilippC/keepass2android">KeePass2Android</a><br />iOS? 对不起，我不用看个小电影都麻烦且连个正经文件管理器都没有的手机</p><p>关于如何备份密码数据库，我用的是syncthing，当然你可以自己写个骚操作的脚本实现，但是如果你也有其它文件需要同步，强烈推荐这个</p><p><del>这篇文章干啥的？刷刷存在感！</del></p>

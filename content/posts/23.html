@@ -1,0 +1,54 @@
+{
+  "title": "树梅派安装Gentoo",
+  "date": "2018-04-15T20:20:00+08:00",
+  "lastmod": "2026-04-19T23:15:07+08:00",
+  "url": "/树梅派安装Gentoo.html",
+  "type": "posts",
+  "original_slug": "树梅派安装Gentoo",
+  "typecho_id": 23
+}
+<h2>前言</h2><p>其实Gentoo的arm <a href="https://web.archive.org/web/20250814081026/http://gentoo.osuosl.org/releases/arm/autobuilds/current-stage3-armv7a_hardfp/">stage3</a>已经很久没更新了<br />我曾也想自己维护个stage3,但是精力不够（主要还是因为树梅派上更新Gentoo太慢了）<br />如果你是Rpi3,请使用这个：<a href="https://web.archive.org/web/20250814081026/https://github.com/sakaki-/gentoo-on-rpi3-64bit">gentoo-on-rpi3-64bit</a>（带有桌面）<br />本教程安装的是32位的Gentoo系统<br />我这里呢 也只会说最简单粗暴的安装方法（因为我也没折腾交叉编译什么的，太麻烦了）</p><h2>准备</h2><ul><li>风扇（编译Gentoo发热很厉害）</li><li>俩个耐操的TF卡（虽然一个也可以，但是不方便）</li><li>一个已正常运行的Linux系统（我才懒得在Windows上折腾这个）</li><li>一个局域网代理（下载/克隆源码用）</li></ul><h2>准备宿主系统</h2><p>这里其实用什么系统都无所谓，但是要确保是32位的系统（已知Arch全部更新为64位系统）否则不能Chroot</p><p>这里就说<a href="https://web.archive.org/web/20250814081026/https://www.raspberrypi.org/downloads/raspbian/">Raspbian</a></p><p>这个安装最容易</p><p>写入镜像后</p><p>在TF卡中的Boot分区新建ssh文件</p><p>在你电脑的Linux系统中切换到root用户查看shadow文件：<code>cat /etc/shadow</code>复制<code>root:xxxx</code>一行</p><p>然后在root用户下编辑TF卡根目录中的<code>etc/shadow</code>文件删掉root一行并粘贴先前的内容</p><p>最后确保TF卡根目录中<code>etc/ssd/sshd_confg</code>的<code>PermitRootLogin</code>没有被<code>#</code>注释且后面为<code>yes</code>：<code>PermitRootLogin yes</code></p><h2>安装Gentoo</h2><p>插卡，上电</p><p>找到树梅派的IP：<code>ssh root@IP</code></p><p>登录密码为你电脑系统中的root密码</p><p>自行简单配置下系统</p><p>用读卡器把另一个TF卡插入到树梅派</p><p>创建挂载目录：<code>mkdir /mnt/gentoo</code></p><p>运行<code>fdisk -l</code>查看另一个TF卡的名字，例如<code>/dev/sda</code></p><p>使用你自己喜欢的工具进行分区，例如：</p><pre><code>/dev/sda1    100M    /boot
+/dev/sda2    512M/1G    swap
+/dev/sda3    Free    /</code></pre><p>挂载分区：<code>mount /dev/sda3 /mnt/gentoo</code></p><p>下载stage3：<code>wget http://gentoo.osuosl.org/releases/arm/autobuilds/current-stage3-armv7a_hardfp/stage3-armv7a-20161129.tar.bz2 -O /mnt/gentoo/stage3.tar.bz2</code>(请<code>export http_proxy=ip:port</code>设置代理下载，或去镜像站下载）</p><p>解压：<code>tar xfpj /mnt/gentoo/stage3.tar.bz2 -C /mnt/gentoo/</code></p><p>挂载boot：<code>mount /dev/sda1 /mnt/gentoo/boot</code></p><p>下载portage：<code>wget http://distfiles.gentoo.org/snapshots/portage-latest.tar.bz2</code></p><p>解压portage：<code>tar xjf portage-latest.tar.bz2 -C /mnt/gentoo/usr</code></p><p>安装内核和模块：</p><pre><code>cd /tmp/
+git clone --depth 1 https://github.com/raspberrypi/firmware/ #请为git设置代理,例如:git config --global https.proxy 'socks5://127.0.0.1:1080'
+cd firmware/boot
+cp -r * /mnt/gentoo/boot/
+cp -r ../modules /mnt/gentoo/lib/</code></pre><p>配置fstab：<code>nano /mnt/gentoo/etc/fstab</code></p><p>修改为：</p><pre><code>/dev/mmcblk0p1        /boot        auto        noauto,noatime    1 2
+/dev/mmcblk0p3        /        ext4        noatime        0 1
+/dev/mmcblk0p2        none        swap        sw        0 0</code></pre><p>编辑启动参数：<code>nano /mnt/gentoo/boot/cmdline.txt</code></p><p>写入：<code>dwc_otg.lpm_enable=0 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 root=/dev/mmcblk0p3 rootfstype=ext4 elevator=deadline rootwait</code></p><p>设置时区：<br /><code>cp /mnt/gentoo/usr/share/zoneinfo/Asia/Shanghai /mnt/gentoo/etc/localtime</code><br /><code>echo &quot;Asia/Shanghai&quot; &gt; /mnt/gentoo/etc/timezone</code></p><h2>更新配置系统</h2><p>chroot进入系统：</p><pre><code>mount -t proc /proc /mnt/gentoo/proc
+mount --rbind /sys /mnt/gentoo/sys
+mount --make-rslave /mnt/gentoo/sys
+mount --rbind /dev /mnt/gentoo/dev
+mount --make-rslave /mnt/gentoo/dev
+
+test -L /dev/shm &amp;&amp; rm /dev/shm &amp;&amp; mkdir /dev/shm
+mount --types tmpfs --options nosuid,nodev,noexec shm /dev/shm
+chmod 1777 /dev/shm
+
+chroot /mnt/gentoo /bin/bash</code></pre><p>设置root密码：<code>passwd</code></p><p>配置make.conf:<code>nano /etc/portage/make.conf</code></p><p>自行加入/修改：</p><pre><code>
+GENTOO_MIRRORS=&quot;https://mirrors.ustc.edu.cn/gentoo/&quot;
+ACCEPT_LICENSE=&quot;*&quot;
+ACCEPT_KEYWORDS=&quot;~* ~arm&quot;
+
+L10N=&quot;en-US zh-CN en zh&quot;
+LINGUAS=&quot;en_US zh_CN en zh&quot;
+
+EMERGE_DEFAULT_OPTS=&quot;--verbose=y --keep-going --with-bdeps=y&quot;
+MAKEOPTS=&quot;-j1&quot;</code></pre><p>配置package.use：<code>nano /etc/portage/package.use</code></p><p>写入：</p><pre><code>dev-lang/python sqlite
+net-misc/connman iptables
+net-wireless/wpa_supplicant dbus</code></pre><p>创建gentoo repo配置：</p><pre><code>mkdir /etc/portage/repos.conf
+nano /etc/portage/repos.conf/gentoo.conf</code></pre><p>写入：</p><pre><code>[DEFAULT]
+main-repo = gentoo
+
+[gentoo]
+location = /usr/portage
+sync-type = rsync
+sync-uri = rsync://rsync.mirrors.ustc.edu.cn/gentoo-portage/
+# sync-uri = https://github.com/gentoo/gentoo
+auto-sync = yes</code></pre><p>选择profile：</p><pre><code>eselect profile list
+eselect profile set X #选择自己需要的profile</code></pre><p>更新系统：</p><pre><code>emerge --sync
+nohub emerge -auqDN @world &gt; /tmp/emerge.log &amp;</code></pre><p>通过<code>tail -f /tmp/emerge.log</code>查看进度</p><p>现在你可以随时断开ssh连接</p><p>如果看到因为错误退出，运行<code>emerge -auvDN @world</code>进行排错</p><p>Raspbian可能会因为自己性能低下直接挂掉。。。这时候需要你重新挂载分区并chroot</p><p>(一万年过去之后）</p><p>清理旧包：<code>emerge --depclean</code></p><h2>安装配置一些必要东西</h2><p>安装必要软件：<code>emerge connman chronyd</code></p><p>配置服务：</p><pre><code>rc-update add swclock boot
+rc-update del hwclock boot
+rc-update add chronyd default
+rc-update add connman default
+rc-update add sshd default</code></pre><p>配置ssh：<code>nano /etc/ssh/sshd_config</code>，去掉<code>PermitRootLogin</code>前的<code>#</code>注释并修改后面为<code>yes</code>：<code>PermitRootLogin yes</code></p><h2>结尾</h2><p>到了这里你就可以关机换上TF卡启动了</p><p>找到IP并<code>ssh root@IP:port</code>连接</p><p>至于细节的配置我就懒得说了</p><p><strong>参考链接：<a href="https://web.archive.org/web/20250814081026/https://wiki.gentoo.org/wiki/Raspberry_Pi/Quick_Install_Guide">Raspberry Pi/Quick Install Guide</a></strong></p>

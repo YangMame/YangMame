@@ -1,0 +1,50 @@
+{
+  "title": "暗网没有那么神秘",
+  "date": "2018-03-15T23:00:00+08:00",
+  "lastmod": "2026-04-19T23:15:09+08:00",
+  "url": "/暗网没有那么神秘.html",
+  "type": "posts",
+  "original_slug": "暗网没有那么神秘",
+  "typecho_id": 26
+}
+<p>需要的东西:</p><pre><code>一个代理：ss/ssr.etc
+一台电脑，运行着Gentoo自然是最好的
+一个不被别人发现的角落：）
+良好的英语基础
+</code></pre><p>将介绍的东西：</p><pre><code>tor
+zeronet
+i2p
+</code></pre><p><hr></p><h2>Tor</h2><p>假设你已经有了个代理且代理地址和端口为：127.0.0.1:8118</p><p>首先你需要一个tor后端</p><p>Gentoo用户：</p><pre><code>emerge tor
+rc-update add tor default
+</code></pre><p>Arch用户：</p><pre><code>pacman -S tor
+systemd enable tor</code></pre><p><strong><em>其它发行版类似</em></strong></p><p>然后修改tor的配置：</p><pre><code>vim /etc/tor/torrc</code></pre><p>修改为如下：</p><pre><code>User tor
+
+PIDFile /var/run/tor/tor.pid
+Log notice syslog
+
+DataDirectory   /var/lib/tor/data
+
+ControlPort 9051
+CookieAuthentication 1
+
+CookieAuthFile /var/lib/tor/auth/control_auth_cookie
+CookieAuthFileGroupReadable 1
+
+HTTPSProxy 127.0.0.1:8118
+</code></pre><p><code>rc-service tor start</code>或<code>systemd start tor</code>启动tor</p><p>然后你就需要安装torbrowser了</p><p>官网（需番茄）有中文版 解压就能用 但是俺懒得自己手动更新所以选择通过包管理安装</p><p>最后在tor浏览器的代理设置里面设置socks5代理为127.0.0.1端口为9050然后测试下是否能上谷歌</p><p>暗网的网址都是onion结尾的<br />这里有个list <a href="https://web.archive.org/web/20250814083503/https://github.com/ckjbug/Hacking/blob/master/%E6%95%B4%E7%90%86%E7%9A%84%E6%9A%97%E7%BD%91%E7%BD%91%E5%9D%80Tor.txt">整理的暗网地址</a></p><p>这里说下几个比较重要的地址：</p><p><a href="https://web.archive.org/web/20250814083503/http://wiki5kauuihowqi5.onion/">http://wiki5kauuihowqi5.onion</a><br /><a href="https://web.archive.org/web/20250814083503/http://torlinkbgs6aabns.onion/">http://torlinkbgs6aabns.onion/</a><br /><a href="https://web.archive.org/web/20250814083503/http://zqktlwi4fecvo6ri.onion/">http://zqktlwi4fecvo6ri.onion</a></p><h2>ZeroNet</h2><p>一般来说配合tor使用才能保证安全性</p><p>Gentoo用户：</p><pre><code>emerge -a layman
+layman -a raiagent
+USE=&quot;tor&quot; emerge zeronet</code></pre><p>然后把<code>net-vpn/zeronet tor</code>加到<code>package.use</code></p><p>安装完之后会有提示</p><p>这里简单说下：</p><pre><code>rc-service tor stop
+usermod --append --groups=tor zeronet
+mkdir --mode=750 /var/lib/tor/auth
+chown -R tor: /var/lib/tor/auth
+rc-update zeronet default
+rc-service zeronet restart
+</code></pre><p>在浏览器打开<code>http://127.0.0.1:43110</code>即可访问了</p><p>进入之后 在ZeroMe注册属于你的id之后 最好备份下<code>/var/lib/zeronet/users.json</code></p><p>ZeroNet不会帮你找回帐号的！需要自己妥善保存</p><p>这里也推荐一些零网地址：</p><pre><code>http://127.0.0.1:43110/19565hrPUAFkLgkgT2L1YUkbu1nmXvV8kH/
+http://127.0.0.1:43110/1AEqp2aLHuyWRHpByNbSjKpTjmKQXA8iug/
+http://127.0.0.1:43110/keys.bit/</code></pre><p>我才没有开车呢=。=</p><h2>I2P</h2><p>Gentoo用户：</p><pre><code>emerge -av i2p
+rc-update add i2p default
+rc-service i2p start
+</code></pre><p>Arch用户:</p><pre><code>pacman -S i2p
+systemctl enable i2p #我也不知道它有没有systemd服务
+systemctl start i2p
+</code></pre><p>然后通过浏览器访问： <code>http://localhost:7657/home</code> 进入控制台</p><p>在这里设置代理： <code>http://localhost:7657/configreseed</code> 保存 之后你可以把它挂在后台连节点</p><p>如果一天之后还是不能找到节点</p><p>你可以通过<a href="https://web.archive.org/web/20250814083503/https://www.resilio.com/">Resilio Sync</a>同步这个密钥：<code>BTLZ4A4UD3PEWKPLLWEOKH3W7OQJKFPLG</code> 获取seed导入</p><p>至于具体的玩法 自己慢慢摸索吧 反正有中文翻译</p><p>PS：它的匿名邮箱可以在外网收发邮件哦</p>

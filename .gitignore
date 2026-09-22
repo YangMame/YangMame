@@ -1,0 +1,7 @@
+/public/
+/resources/
+/.hugo_build.lock
+*.dat
+*.sql
+__pycache__/
+/node_modules/

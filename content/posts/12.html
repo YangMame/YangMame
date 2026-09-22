@@ -1,0 +1,776 @@
+{
+  "title": "极限建站",
+  "date": "2018-08-13T00:00:00+08:00",
+  "lastmod": "2026-04-19T23:14:57+08:00",
+  "url": "/极限建站.html",
+  "type": "posts",
+  "original_slug": "极限建站",
+  "typecho_id": 12
+}
+<h3>前言</h3><p>有很多人可能还用着一键脚本/面版安装的网站</p><p>优点是轻松傻瓜式，缺点是浪费时间/空间 学习成本可能比我的文章还大（前提是愿意琢磨<br />如果你的VPS只有/剩余5G Disk，显然用这些脚本是不太现实的</p><p>但是如果自己安装配置 你大概只需要不到1G的空间就能搭建个和我一样的网站</p><p><hr></p><h4>更新</h4><p>2018.8.17(七夕)：增加Nginx配置，增加Nextcloud</p><p>2018.9.30(快国庆了)：更新至Debian 10（buster），增加cloudflare相关配置</p><p>2018.10.24(双十一要来了，要剁手了）：更正部分旧内容，增加Iptables配置</p><p>2019.08.06(快七夕了？？？)：更新关于v2ray tls版本的配置</p><p>2019.12.15(终于能休息了)：更新nginx配置echo的问题</p><p><hr></p><h3>预览</h3><ul><li>Web: <a href="https://web.archive.org/web/20250714161437/https://caddyserver.com/download">Caddy</a> or <a href="https://web.archive.org/web/20250714161437/https://www.nginx.com/">Nginx</a> #请二选一</li><li>Sql: Mariadb</li><li>Blog: Typecho (<a href="{{< siteurl "" >}}">blog.yangmame.org</a>)</li><li>CDN: <a href="https://web.archive.org/web/20250714161437/https://www.cloudflare.com/">Cloudflare</a></li><li>Email: <a href="https://web.archive.org/web/20250714161437/https://domain.yandex.com/domains_add/">Yandex</a></li><li>Proxy: <a href="https://web.archive.org/web/20250714161437/https://www.v2ray.com/">V2ray</a></li><li><del>Git: Gitea (<a href="https://web.archive.org/web/20250714161437/https://git.yangmame.org/">git.yangmame.org</a>)</del></li><li>File Browser: <del>Caddy with http.filemanager plugin</del> or <a href="https://web.archive.org/web/20250714161437/https://file.yangmame.org/">Nextcloud</a></li><li>BT: <del>qBittorrent-nox (<a href="https://web.archive.org/web/20250714161437/https://bt.yangmame.org/">bt.yangmame.org</a>)</del></li></ul><p><hr></p><h3>购买VPS</h3><p><strong>VPS推荐最低配置：</strong></p><p>Mem: &gt;=512M<br />CPU: &gt;=1Core<br />Disk: &gt;=5G</p><p><del>我的网站运行在搬瓦工年付19刀的KVM VPS上（流下了没钱的泪）</del><br />目前运行在<a href="https://web.archive.org/web/20250714161437/https://cloudcone.com/">Cloudcone</a>上,第一次购买可能会遇到被墙的IP，需要发工单更换IP</p><p>但是推荐新手买<a href="https://web.archive.org/web/20250714161437/https://www.vultr.com/?ref=7306705">Vultr</a>或<a href="https://web.archive.org/web/20250714161437/https://m.do.co/c/6bdaa9c5e0d8">DigitalOcean</a>（请使用我的链接注册，这样我也能受益 注册后需要充值五美元才能使用，但请放心 这俩家都是大牌）</p><p>至于买什么地区，什么配置 自己定夺</p><p>系统请选择Debian 9 x86_64,如果有Debian10就更好了。 (若出现其他问题需要自行解决，例如<a href="https://web.archive.org/web/20250714161437/https://github.com/mholt/caddy/issues/822">systemd版本太低造成参数无效导致权限不足</a>）</p><p>记得检查VPS的IP是否能访问，否则请更换IP（给VPS商发工单or新开VPS）</p><p><hr></p><h3>购买域名</h3><p><del>域名推荐去<a href="https://web.archive.org/web/20250714161437/https://www.godaddy.com/">Godaddy</a>购买（无需实名制or备案）</del><br />推荐去<a href="https://web.archive.org/web/20250714161437/https://www.namesilo.com/index.php">Namesilo</a>购买（便宜，免费的隐私保护，不流氓）</p><p>你要是有更好的选择也行</p><p>这里说下我知道的主要域名类型</p><pre><code>.com: 一般网站
+
+.net: 与com类似
+
+.org: 公益 无盈利网站
+
+.me: 个人个性网站
+
+.info: 信息类网站
+
+.blog: 博客网站
+
+.moe: 二次元类网站
+
+.cn: 中国网站（需要备案）
+</code></pre><ul><li>如果仅仅写博客推荐.me 有钱人上.blog</li><li>如果和我一样推荐.org或.info</li><li>ACG爱好者推荐.moe</li><li>如果自己也不确定推荐.com 有钱人上.net</li></ul><p><hr></p><h3>配置Cloudflare</h3><p>首先去注册<a href="https://web.archive.org/web/20250714161437/https://www.cloudflare.com/">Cloudflare</a></p><p>然后添加你的网站，在域名商（Godaddy）中更换域名的DNS为CLoudflare提供给你的DNS地址</p><p>等待生效后</p><p>在Cloudflare中转到DNS设置</p><p>添加A记录：Name填@ IPv4 address填你VPS的IP地址 点击Add Record完成添加</p><p>添加子域名：（例如blog.yangmame.org），添加CNAME记录：Name填你想添加的子域名（例如blog） Domain name填你的根域名（例如yangmame.org） 点击Add Record完成添加（如果想网站和我一样，则请添加blog,www,file.admin,git,bt子域名，之后的配置按此配置）</p><p><img src="{{< siteurl "usr/uploads/2018/03/257160541.png" >}}" alt="screenshot.png" title="screenshot.png"><br />转到Crypto页面</p><p>将SSL设置为Full(strict)</p><p>启用下面的Always use HTTPS</p><p><del>TLS版本请选择1.2，除非你不打算用任何GO语言写的东西(v2ray)，因为GO还不<a href="https://web.archive.org/web/20250714161437/https://github.com/golang/go/issues/9671">支持TLSv1.3</a>。。。</del> 现在最新的go终于支持了，旧版本可能需要升级一下，不过如果你客户端有系统比较旧的建议仍建议选1.2</p><p>还有些选项如果你了解也可以开启（比如HSTS）</p><p>转到Page Rules页面添加如下规则以启用http跳转https（减少配置量与Nginx压力）<br /><img src="{{< siteurl "usr/uploads/2018/09/3255756385.png" >}}" alt="2018-09-30_17-52.png" title="2018-09-30_17-52.png"></p><p><hr></p><h3>配置VPS</h3><p>ssh连接VPS</p><p>运行如下命令更新系统：</p><pre><code>apt update
+apt dist-upgrade
+apt --purge autoremove
+reboot
+</code></pre><p>如果你不是Debian10，请先查看当前的Debian版本的codename：</p><pre><code>cat /etc/apt/sources.list
+</code></pre><p>你会看到类似于如下的一些内容：</p><pre><code>...
+deb http://mirrors.xxxx.xxxx.xxx/debian/  stretch main
+...
+</code></pre><p>其中<code>stretch</code>为codename，即Debian9的codename<br />Debian8的codename为<code>jessie</code>，Debian7为<code>wheezy</code><br />运行如下命令进行升级（有一定风险挂掉，请一定确保已在当前版本为最新状态，不建议在已安装配置了很多东西的VPS上进行）：</p><pre><code>cp /etc/apt/sources.list /etc/apt/sources.list.bak
+sed -i 's/stretch/buster/g' /etc/apt/sources.list #将stretch更换为你的codename
+apt update
+apt dist-upgrade
+apt --purge autoremove
+</code></pre><p>开启BBR（KVM）：</p><pre><code>modprobe tcp_bbr
+echo &quot;tcp_bbr&quot; &gt;&gt; /etc/modules-load.d/modules.conf
+echo &quot;net.core.default_qdisc=fq&quot; &gt;&gt; /etc/sysctl.conf
+echo &quot;net.ipv4.tcp_congestion_control=bbr&quot; &gt;&gt; /etc/sysctl.conf
+sysctl -p
+</code></pre><h3>Iptables</h3><p>Debian的iptables是被阉割了的，需要安装这个包以省事：</p><pre><code>apt install iptables-persistent</code></pre><p>运行：</p><pre><code>iptables -F  # 清空所有的防火墙规则
+iptables -X  # 删除用户自定义的空链
+iptables -Z  # 清空计数
+iptables -A INPUT -p tcp --dport 22 -j ACCEPT # 放行22端口（SSH）如果你更改了SSH端口将22改掉即可
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A OUTPUT -o lo -j ACCEPT # 放行回环地址
+iptables -P INPUT DROP # 配置默认的不让进
+iptables -P FORWARD DROP # 默认的不允许转发
+iptables -P OUTPUT ACCEPT # 默认的可以出去
+iptables -A INPUT -p tcp --dport 443  -j ACCEPT # 放行443（HTTPS）端口，这里因为有CloudFlare的Page Rule规则仅访问HTTPS不需要使用80端口的HTTP服务
+iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT # 已经建立的连接得让它进来
+iptables-save &gt; /etc/iptables/rules.v4 # 保存ipv4的规则
+systemctl enable netfilter-persistent # 启用systemd service</code></pre><p>如果你也使用ipv6，则把上面命令的<code>iptables</code>改为<code>ip6tables</code>，把<code>/etc/iptables/rules.v4</code>改为<code>/etc/iptables/rules.v6</code></p><h4>Caddy（本人目前未继续使用此软件，随时可能过时）</h4><p>安装Caddy并配置权限 创建用户 创建必要文件/文件夹：</p><pre><code>wget https://getcaddy.com -O caddy.sh
+bash caddy.sh personal http.filemanager,http.nobots,tls.dns.cloudflare
+chown root:root /usr/local/bin/caddy
+chmod 755 /usr/local/bin/caddy
+groupadd caddy
+useradd -g caddy --home-dir /var/www --no-create-home --shell /usr/sbin/nologin --system caddy
+mkdir /etc/caddy
+touch /etc/caddy/Caddyfile
+chown -R root:caddy /etc/caddy
+chown caddy:caddy /etc/caddy/Caddyfile
+chmod 444 /etc/caddy/Caddyfile
+mkdir /etc/ssl/caddy
+chown -R caddy:root /etc/ssl/caddy
+chmod 770 /etc/ssl/caddy
+mkdir /var/www
+chown caddy:caddy /var/www
+</code></pre><p>创建Caddy服务：</p><pre><code>nano /etc/systemd/system/caddy.service
+</code></pre><p>写入（注意查看并删除or修改中文注释）：</p><pre><code>[Unit]
+Description=Caddy HTTP/2 web server
+Documentation=https://caddyserver.com/docs
+After=network-online.target
+Wants=network-online.target systemd-networkd-wait-online.service
+
+[Service]
+#Restart=on-failure
+StartLimitInterval=864000
+StartLimitBurst=500
+
+; User and group the process will run as.
+User=caddy
+Group=caddy
+
+; Letsencrypt-issued certificates will be written to this directory.
+Environment=CADDYPATH=/etc/ssl/caddy
+Environment=CLOUDFLARE_API_KEY=这里改为你的API Key，在这个页面点击Global API Key---&gt;View API Key即可看到：https://www.cloudflare.com/a/profile
+Environment=CLOUDFLARE_EMAIL=这里改为你cloudfalre的邮箱
+
+; Always set &quot;-root&quot; to something safe in case it gets forgotten in the Caddyfile.
+ExecStart=/usr/local/bin/caddy -log stdout -agree=true -conf=/etc/caddy/Caddyfile -root=/var/tmp
+ExecReload=/bin/kill -USR1 $MAINPID
+
+; Limit the number of file descriptors; see `man systemd.exec` for more limit settings.
+LimitNOFILE=1048576
+; Unmodified caddy is not expected to use more than that.
+LimitNPROC=64
+
+; Use private /tmp and /var/tmp, which are discarded after caddy stops.
+PrivateTmp=true
+; Use a minimal /dev
+PrivateDevices=true
+; Hide /home, /root, and /run/user. Nobody will steal your SSH-keys.
+ProtectHome=true
+; Make /usr, /boot, /etc and possibly some more folders read-only.
+ProtectSystem=full
+; … except /etc/ssl/caddy, because we want Letsencrypt-certificates there.
+;   This merely retains r/w access rights, it does not add any new. Must still be writable on the host!
+ReadWriteDirectories=/etc/ssl/caddy
+
+; The following additional security directives only work with systemd v229 or later.
+; They further restrict privileges that can be gained by Caddy. Uncomment if you like.
+; Note that you may have to add capabilities required by any plugins in use.
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+;NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target</code></pre><p>编辑Caddy配置：</p><pre><code>nano /etc/caddy/Caddyfile
+</code></pre><p>写入并自行删除你不需要的网站配置（注意查看并删除中文注释）：</p><pre><code>#主站，将后面的所有yangmame.org换成你自己的域名
+https://yangmame.org {
+        tls {
+                dns cloudflare
+        }
+        gzip
+# 这里的root为网站的根目录，记得创建文件夹并修改权限，之后的root也请自行创建文件夹并修改权限
+# 例如：mkdir /var/www/www.yangmame.org &amp;&amp; chown caddy:caddy /var/www/www.yangmame.org
+        root /var/www/www.yangmame.org
+}
+
+#主站
+https://www.yangmame.org {
+    tls {
+        dns cloudflare
+    }
+        gzip
+    root /var/www/www.yangmame.org
+}
+
+#博客
+https://blog.yangmame.org {
+    tls {
+        dns cloudflare
+    }
+    gzip
+    root /var/www/blog.yangmame.org
+        #typecho安装时请删掉下一行的注释
+        #fastcgi / /run/php/php7.3-fpm.sock php
+        #typecho安装完成之后删掉掉下面的注释（千万不要在安装时删掉下面的注释）
+        #rewrite / {
+        #        if {path} not_match (/usr/|/admin/)
+        #        to /index.php{uri}
+        #}
+}
+
+#Nextcloud，最好用的自建网盘
+https://file.yangmame.org {
+
+    root   /var/www/file.yangmame.org
+
+    fastcgi / /run/php/php7.3-fpm.sock php {
+        env PATH /bin
+    }
+    
+    # checks for images
+        rewrite {
+            ext .svg .gif .png .html .ttf .woff .ico .jpg .jpeg
+        r ^/index.php/(.+)$
+        to /{1} /index.php?{1}
+    }
+
+    rewrite {
+        r ^/index.php/.*$
+        to /index.php?{query}
+    }
+
+    # client support (e.g. os x calendar / contacts)
+    redir /.well-known/carddav /remote.php/carddav 301
+    redir /.well-known/caldav /remote.php/caldav 301
+
+    # remove trailing / as it causes errors with php-fpm
+    rewrite {
+        r ^/remote.php/(webdav|caldav|carddav|dav)(\/?)(\/?)$
+        to /remote.php/{1}
+    }
+
+    rewrite {
+        r ^/remote.php/(webdav|caldav|carddav|dav)/(.+?)(\/?)(\/?)$
+        to /remote.php/{1}/{2}
+    }
+
+    rewrite {
+        r ^/public.php/(dav|webdav|caldav|carddav)(\/?)(\/?)$
+        to /public.php/{1}
+    }
+
+    rewrite {
+        r ^/public.php/(dav|webdav|caldav|carddav)/(.+)(\/?)(\/?)$
+        to /public.php/{1}/{2}
+    }
+
+    # .htaccess / data / config / ... shouldn't be accessible from outside
+    status 403 {
+        /.htaccess
+        /data
+        /config
+        /db_structure
+        /.xml
+        /README
+    }
+
+    header / Strict-Transport-Security &quot;max-age=31536000;&quot;
+
+    #这里是V2ray
+    proxy /download localhost:1234 {
+        websocket
+        header_upstream -Origin
+    }
+}
+
+#另一个”网盘“，不过这个可以访问系统的根目录并上传修改和运行命令
+https://admin.yangmame.org {
+        tls {
+                dns cloudflare
+        }
+        gzip
+    filemanager / / {
+                locale zh-cn
+                show /
+                alternative_recaptcha true
+        }
+}
+
+#Git网站
+https://git.yangmame.org {
+    tls {
+        dns cloudflare
+    }
+        gzip
+    proxy / localhost:3000
+}
+
+#qBittorrent的Web控制端
+https://bt.yangmame.org {
+        tls {
+                dns cloudflare
+        }
+        gzip
+        proxy / localhost:8080
+}</code></pre><p>给予权限并启用服务：</p><pre><code>chown root:root /etc/systemd/system/caddy.service
+chmod 644 /etc/systemd/system/caddy.service
+systemctl daemon-reload
+systemctl enable caddy
+systemctl start caddy
+</code></pre><p><strong><em>PS：请务必过了一俩分钟后检查caddy的运行状态，如果看到错误，请多重启几次(因为申请证书可能失败）：<code>systemctl restart caddy</code>，如果每次报错都一样 请确保Cloudflare添加了对应的子域名CNAME记录or仔细检查配置 &gt; 自行谷歌 &gt; 联系我</em></strong></p><h4>Nginx</h4><p>如果你不是Debian 10请选择添加源安装Nginx：</p><pre><code>cat &gt; /etc/apt/sources.list.d/nginx.list &lt;&lt; EOF 
+deb http://nginx.org/packages/debian/ stretch nginx
+deb-src http://nginx.org/packages/debian/ stretch nginx
+EOF</code></pre><p>导入Nginx的Key:</p><pre><code>wget http://nginx.org/keys/nginx_signing.key
+apt-key add nginx_signing.key</code></pre><p>安装Nginx：</p><pre><code>apt update
+apt install nginx</code></pre><p><strong>重要：</strong><br />编辑<code>/etc/nginx/nginx.conf</code>将<code>user</code>后的<code>nginx</code>值改为<code>www-data</code></p><p><em>注意，以下步骤请更换为自己的域名、文件名与目录路径（关键词：yangmame.org)</em></p><p>写入配置（注意目录、文件名、路径与域名）：</p><pre><code>mkdir /var/www
+chown www-data:www-data /var/www
+# 这里是主页的配置
+cat &lt;&lt; EOF &gt; /etc/nginx/conf.d/www.yangmame.org.conf
+server {
+        listen       443 ssl http2 default_server;
+        listen       [::]:443 ssl http2 default_server;
+        server_name  www.yangmame.org yangmame.org;
+        root         /var/www/www.yangmame.org;
+        index index.html index.htm;
+
+        ssl on;
+        ssl_certificate &quot;/etc/letsencrypt/live/yangmame.org/fullchain.pem&quot;;
+        ssl_certificate_key &quot;/etc/letsencrypt/live/yangmame.org/privkey.pem&quot;;
+
+        ssl_prefer_server_ciphers on;
+        add_header Strict-Transport-Security &quot;max-age=31536000; includeSubDomains&quot; always;
+}
+EOF
+# 这里是博客的配置
+cat &lt;&lt; EOF &gt; /etc/nginx/conf.d/blog.yangmame.org.conf
+server {
+        listen       443 ssl http2;
+        listen       [::]:443 ssl http2;
+        server_name  blog.yangmame.org;
+        root         /var/www/blog.yangmame.org;
+        index index.html index.php index.htm;
+
+        ssl on;
+        ssl_certificate &quot;/etc/letsencrypt/live/yangmame.org/fullchain.pem&quot;;
+        ssl_certificate_key &quot;/etc/letsencrypt/live/yangmame.org/privkey.pem&quot;;
+
+        ssl_prefer_server_ciphers on;
+        add_header Strict-Transport-Security &quot;max-age=31536000; includeSubDomains&quot; always;
+        ssl_ciphers 'ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:ECDHE-RSA-DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:AES:DES-CBC3-SHA:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!aECDH:!EDH-DSS-DES-CBC3-SHA:!EDH-RSA-DES-CBC3-SHA:!KRB5-DES-CBC3-SHA';
+
+        keepalive_timeout   70;
+        ssl_session_timeout 10m;
+        ssl_session_tickets on;
+        ssl_stapling        on;
+        ssl_stapling_verify on;
+
+        if (!-e $request_filename) {
+            rewrite ^(.*)$ /index.php$1 last;
+        }
+
+        location ~ .*\.php(\/.*)*$ {
+            include fastcgi.conf;
+            fastcgi_pass unix:/run/php/php7.3-fpm.sock;
+            fastcgi_index  index.php;
+        }
+    }
+EOF
+# 这里是Nextcloud的配置 请注意，因为我的疏忽，这里的配置用到$的都会被当作变量处理，请务必手动复制粘贴
+cat &lt;&lt; EOF &gt; /etc/nginx/conf.d/file.yangmame.org.conf
+upstream php-handler {
+    #server 127.0.0.1:9000;
+    server unix:/run/php/php7.3-fpm.sock;
+}
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name file.yangmame.org;
+
+    add_header Strict-Transport-Security &quot;max-age=31536000; includeSubDomains&quot; always;
+    ssl_certificate &quot;/etc/letsencrypt/live/yangmame.org/fullchain.pem&quot;;
+    ssl_certificate_key &quot;/etc/letsencrypt/live/yangmame.org/privkey.pem&quot;;
+
+    add_header X-Content-Type-Options nosniff;
+    add_header X-XSS-Protection &quot;1; mode=block&quot;;
+    add_header X-Robots-Tag none;
+    add_header X-Download-Options noopen;
+    add_header X-Permitted-Cross-Domain-Policies none;
+
+    root /var/www/file.yangmame.org/;
+
+    location = /robots.txt {
+        allow all;
+        log_not_found off;
+        access_log off;
+    }
+
+    location = /.well-known/carddav {
+      return 301 $scheme://$host/remote.php/dav;
+    }
+    location = /.well-known/caldav {
+      return 301 $scheme://$host/remote.php/dav;
+    }
+
+    # set max upload size
+    client_max_body_size 512M;
+    fastcgi_buffers 64 4K;
+
+    gzip on;
+    gzip_vary on;
+    gzip_comp_level 4;
+    gzip_min_length 256;
+    gzip_proxied expired no-cache no-store private no_last_modified no_etag auth;
+    gzip_types application/atom+xml application/javascript application/json application/ld+json application/manifest+json application/rss+xml application/vnd.geo+json application/vnd.ms-fontobject application/x-font-ttf application/x-web-app-manifest+json application/xhtml+xml application/xml font/opentype image/bmp image/svg+xml image/x-icon text/cache-manifest text/css text/plain text/vcard text/vnd.rim.location.xloc text/vtt text/x-component text/x-cross-domain-policy;
+
+    location / {
+        rewrite ^ /index.php$uri;
+    }
+
+    location ~ ^/(?:build|tests|config|lib|3rdparty|templates|data)/ {
+        deny all;
+    }
+    location ~ ^/(?:\.|autotest|occ|issue|indie|db_|console) {
+        deny all;
+    }
+
+    location ~ ^/(?:index|remote|public|cron|core/ajax/update|status|ocs/v[12]|updater/.+|ocs-provider/.+)\.php(?:$|/) {
+        fastcgi_split_path_info ^(.+\.php)(/.*)$;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param PATH_INFO $fastcgi_path_info;
+        fastcgi_param HTTPS on;
+        #Avoid sending the security headers twice
+        fastcgi_param modHeadersAvailable true;
+        fastcgi_param front_controller_active true;
+        fastcgi_pass php-handler;
+        fastcgi_intercept_errors on;
+        fastcgi_request_buffering off;
+    }
+
+    location ~ ^/(?:updater|ocs-provider)(?:$|/) {
+        try_files $uri/ =404;
+        index index.php;
+    }
+
+    # Adding the cache control header for js and css files
+    # Make sure it is BELOW the PHP block
+    location ~ \.(?:css|js|woff|svg|gif)$ {
+        try_files $uri /index.php$uri$is_args$args;
+        add_header Cache-Control &quot;public, max-age=15778463&quot;;
+        add_header X-Content-Type-Options nosniff;
+        add_header X-XSS-Protection &quot;1; mode=block&quot;;
+        add_header X-Robots-Tag none;
+        add_header X-Download-Options noopen;
+        add_header X-Permitted-Cross-Domain-Policies none;
+        # Optional: Don't log access to assets
+        access_log off;
+    }
+
+    location ~ \.(?:png|html|ttf|ico|jpg|jpeg)$ {
+        try_files $uri /index.php$uri$is_args$args;
+        # Optional: Don't log access to other assets
+        access_log off;
+    }
+    # 这里是V2ray的配置
+    location /download {
+        proxy_redirect off;
+        proxy_pass http://localhost:1234;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection &quot;upgrade&quot;;
+        proxy_set_header Host $http_host;
+        }
+}
+EOF
+# 这里是Git网站的配置
+cat &lt;&lt; EOF &gt; /etc/nginx/conf.d/git.yangmame.org.conf
+server {
+        listen       443 ssl http2;
+        listen       [::]:443 ssl http2;
+        server_name  git.yangmame.org;
+        location / {
+            proxy_pass http://localhost:3000;
+        }
+
+        ssl on;
+        ssl_certificate &quot;/etc/letsencrypt/live/yangmame.org/fullchain.pem&quot;;
+        ssl_certificate_key &quot;/etc/letsencrypt/live/yangmame.org/privkey.pem&quot;;
+
+        ssl_prefer_server_ciphers on;
+        add_header Strict-Transport-Security &quot;max-age=31536000; includeSubDomains&quot; always;
+}
+EOF
+# 这里是qbittorrent的webui配置
+cat &lt;&lt; EOF &gt; /etc/nginx/conf.d/bt.yangmame.org.conf
+server {
+        listen       443 ssl http2;
+        listen       [::]:443 ssl http2;
+        server_name  bt.yangmame.org;
+        location / {
+            proxy_pass http://localhost:8080;
+        }
+
+        ssl on;
+        ssl_certificate &quot;/etc/letsencrypt/live/yangmame.org/fullchain.pem&quot;;
+        ssl_certificate_key &quot;/etc/letsencrypt/live/yangmame.org/privkey.pem&quot;;
+
+        ssl_prefer_server_ciphers on;
+        add_header Strict-Transport-Security &quot;max-age=31536000; includeSubDomains&quot; always;
+}
+EOF</code></pre><p>先不要急着启动Nginx，还需要配置ssl证书 这里有俩种方式（二选一即可）</p><h5>Acem.sh</h5><p>首先安装它：</p><pre><code>curl  https://get.acme.sh | sh
+echo 'alias acme.sh=~/.acme.sh/acme.sh' &gt;&gt; ~/.bashrc
+source ~/.bashrc</code></pre><p>声明Cloudflare帐号与API KEY并申请证书(在这个<a href="https://web.archive.org/web/20250714161437/https://www.cloudflare.com/a/profile">页面</a>点击Global API Key---&gt;View API Key即可看到):</p><pre><code>export CF_Key=&quot;你的API KEY&quot;
+export CF_Email=&quot;你的邮箱&quot;
+
+acme.sh --issue --dns dns_cf -d yangmame.org -d *.yangmame.org</code></pre><p>安装证书：</p><pre><code>mkdir -p /etc/letsencrypt/live/yangmame.org/
+
+acme.sh  --installcert  -d  yangmame.org   \
+        --key-file   /etc/letsencrypt/live/yangmame.org/privkey.pem \
+        --fullchain-file /etc/letsencrypt/live/yangmame.org/fullchain.pem \
+        --reloadcmd  &quot;systemctl reload nginx&quot;</code></pre><p>到了这里你可以尝试启动Nginx看看是否工作了：</p><pre><code>systemctl enable nginx
+systemctl start nginx
+systemctl status nginx</code></pre><h5>Certbot</h5><p>安装它:</p><pre><code>apt install certbot python3-certbot-dns-cloudflare</code></pre><p>新建cloudflare dns的配置：</p><pre><code>cat &lt;&lt; EOF &gt; /etc/letsencrypt/cf.ini
+dns_cloudflare_email = 你的Cloudflare邮箱
+dns_cloudflare_api_key = 你的API Key，在这个页面点击Global API Key---&gt;View API Key即可看到：https://www.cloudflare.com/a/profile
+EOF</code></pre><p>申请证书：</p><pre><code>certbot certonly --dns-cloudflare --dns-cloudflare-credentials /etc/letsencrypt/cf.ini --dns-cloudflare-propagation-seconds 60  -d *.yangmame.org</code></pre><p>添加定时更新任务：</p><pre><code>crontab -e</code></pre><p>写入：</p><pre><code>6 0 * * * certbot renew</code></pre><h4>Mariadb</h4><p>安装数据库：</p><pre><code>apt install mariadb-server
+</code></pre><p>配置mysql：</p><pre><code>systemctl start mysql
+mysql_secure_installation
+</code></pre><p>要求输入密码时直接回车，然后会让你设置密码，之后的选项一路Y就行</p><p>创建数据库和用户:</p><pre><code># 输入刚刚设置的root密码登录mysql：
+mysql -u root -p
+# 创建typecho的数据库：
+create database typecho;
+# 创建typecho用户并赋予typecho数据库的权限：
+grant all privileges on typecho.* to '用户名,推荐typecho'@'localhost' identified by '密码';
+# 如果你想恢复数据库则运行(第一次使用请忽略)：
+use typecho;
+source /path/to/typecho.sql;
+# 创建gitea的数据库：
+create database gitea;
+# 创建gitea用户并赋予gitea数据库的权限：
+grant all privileges on gitea.* to '用户名,推荐gitea'@'localhost' identified by '密码';
+# 如果你想恢复数据库则运行(第一次使用请忽略)：
+use gitea;
+source path/to/gitea.sql;
+# 创建Nextcloud数据库
+create database nextcloud;
+# 创建nextcloud用户并赋予nextcloud数据库的权限：
+grant all privileges on nextcloud.* to '用户名,推荐nextcloud'@'localhost' identified by '密码';
+# 如果你想恢复数据库则运行(第一次使用请忽略)：
+use nextcloud;
+source path/to/nextcloud.sql;
+# 刷新数据库：
+flush privileges;
+# 退出
+exit</code></pre><p>启动Mysql：</p><pre><code>systemctl enable mysql
+systemctl restart mysql
+</code></pre><h4>PHP</h4><p>安装PHP及Typecho需要的扩展(如果直接安装php会依赖apache2）：</p><pre><code>apt install php-fpm
+apt install php php-mysql php-gd php-xml php-cgi php-cli php-curl php-zip php-mbstring unzip
+</code></pre><p>如果你使用caddy则编辑php-fpm配置：</p><pre><code>nano /etc/php/7.3/fpm/pool.d/www.conf
+</code></pre><p>将如下中的<code>www-data</code>修改为caddy：</p><pre><code>user = www-data
+group = www-data
+</code></pre><p>还有：</p><pre><code>listen.owner = caddy
+listen.group = caddy
+</code></pre><p>启动php-fpm：</p><pre><code>systemctl enable php7.3-fpm
+systemctl start php7.3-fpm
+systemctl restart php7.3-fpm
+</code></pre><h4>V2ray</h4><p>安装V2ray：</p><pre><code>wget https://install.direct/go.sh -O v2ray.sh
+bash v2ray.sh
+</code></pre><p>更改配置:</p><pre><code>rm /etc/v2ray/config.json
+nano /etc/v2ray/config.json
+</code></pre><p>写入(请注意并删除中文注释）：</p><pre><code>{
+  &quot;outbound&quot;: {
+    &quot;streamSettings&quot;: null,
+    &quot;tag&quot;: null,
+    &quot;protocol&quot;: &quot;freedom&quot;,
+    &quot;mux&quot;: null,
+    &quot;settings&quot;: null
+  },
+  &quot;log&quot;: {
+    &quot;access&quot;: &quot;/var/log/v2ray/access.log&quot;,
+    &quot;loglevel&quot;: &quot;info&quot;,
+    &quot;error&quot;: &quot;/var/log/v2ray/error.log&quot;
+  },
+  &quot;outboundDetour&quot;: [{
+      &quot;tag&quot;: &quot;direct&quot;,
+      &quot;protocol&quot;: &quot;freedom&quot;,
+      &quot;settings&quot;: null
+    },
+    {
+      &quot;tag&quot;: &quot;blocked&quot;,
+      &quot;protocol&quot;: &quot;blackhole&quot;,
+      &quot;settings&quot;: null
+    }
+  ],
+  &quot;inbound&quot;: {
+    &quot;streamSettings&quot;: {
+      &quot;network&quot;: &quot;ws&quot;,
+      &quot;kcpSettings&quot;: null,
+      &quot;wsSettings&quot;: {
+        &quot;path&quot;: &quot;/download&quot; #这里必须和Caddy或Nginx配置中&quot;/download&quot; 的路径一样
+      },
+      &quot;tcpSettings&quot;: null,
+      &quot;tlsSettings&quot;: {},
+      &quot;security&quot;: &quot;&quot;
+    },
+    &quot;settings&quot;: {
+      &quot;ip&quot;: null,
+      &quot;udp&quot;: true,
+      &quot;clients&quot;: [{
+        &quot;alterId&quot;: 100,
+        &quot;security&quot;: &quot;none&quot;,
+        &quot;id&quot;: &quot;xxxx-xxxx-xxxx-xxxx&quot; #请访问 https://www.uuidgenerator.net/ 获取UUID并改入
+      }],
+      &quot;auth&quot;: null
+    },
+    &quot;protocol&quot;: &quot;vmess&quot;,
+    &quot;port&quot;: 1234, #这里的端口也必须和Caddy或Nginx配置中&quot;/download&quot; 的路径一样
+    &quot;listen&quot;: null
+  },
+  &quot;inboundDetour&quot;: null,
+  &quot;routing&quot;: {
+    &quot;settings&quot;: {
+      &quot;rules&quot;: [{
+        &quot;ip&quot;: [
+          &quot;0.0.0.0/8&quot;,
+          &quot;10.0.0.0/8&quot;,
+          &quot;100.64.0.0/10&quot;,
+          &quot;127.0.0.0/8&quot;,
+          &quot;169.254.0.0/16&quot;,
+          &quot;172.16.0.0/12&quot;,
+          &quot;192.0.0.0/24&quot;,
+          &quot;192.0.2.0/24&quot;,
+          &quot;192.168.0.0/16&quot;,
+          &quot;198.18.0.0/15&quot;,
+          &quot;198.51.100.0/24&quot;,
+          &quot;203.0.113.0/24&quot;,
+          &quot;::1/128&quot;,
+          &quot;fc00::/7&quot;,
+          &quot;fe80::/10&quot;
+        ],
+        &quot;domain&quot;: null,
+        &quot;type&quot;: &quot;field&quot;,
+        &quot;port&quot;: null,
+        &quot;outboundTag&quot;: &quot;blocked&quot;
+      }],
+      &quot;domainStrategy&quot;: null
+    },
+    &quot;strategy&quot;: &quot;rules&quot;
+  },
+  &quot;dns&quot;: null
+}</code></pre><p>启动V2ray服务：</p><pre><code>systemctl enable v2ray
+systemctl start v2ray
+</code></pre><h4>Typecho</h4><p>进入网站的根目录:</p><pre><code>cd /var/www/blog.yangmame.org #注意路径改为自己的
+</code></pre><p>下载Typecho(自行检查最新的实际下载<a href="https://web.archive.org/web/20250714161437/http://typecho.org/download">地址</a>）：</p><pre><code>wget http://typecho.org/downloads/1.1-17.10.30-release.tar.gz
+tar -xf *.tar.gz
+mv build/* .
+rm -rf build *.tar.gz
+# 如果你使用caddy,否则将caddy改为www-data：
+chown caddy:caddy -R /var/www</code></pre><p>然后在浏览器中访问你的博客，例如：blog.yangmame.org</p><p>这时候应该会显示安装界面</p><p>数据库和用户均填写typecho,密码为配置数据库时的密码，其它内容自行填写</p><p>然后你就可以愉快的写作了</p><p>至于安装主题什么的就自己琢磨吧</p><p>本博客使用的主题是<a href="https://web.archive.org/web/20250714161437/https://github.com/YangMame/Cat">Cat</a></p><h4>Nextcloud</h4><p>进入网站的根目录：</p><pre><code>cd /var/www/file.yangmame.org #注意路径改为自己的</code></pre><p>下载Nextcloud(自行检查最新的实际下载<a href="https://web.archive.org/web/20250714161437/https://nextcloud.com/install/#instructions-server">地址</a>)</p><pre><code>wget https://download.nextcloud.com/server/releases/nextcloud-13.0.5.zip
+unzip *.zip
+rm *.zip
+mv nextcloud/* .
+rmdir nextcloud
+# 如果你使用caddy,否则将caddy改为www-data：
+chown caddy:caddy -R /var/www</code></pre><p>然后在浏览器中访问，例如：file.yangmame.org</p><p>这时候应该会显示安装界面</p><p>数据库和用户均填写nextcloud，密码为配置数据库时的密码<br />其它配置内容请自行填写（因为我也不记得是啥样了 2333）</p><h4>Gitea</h4><p>创建git用户并切换：</p><pre><code>adduser git # 这里除了密码都可以留空（adduser命令为Debian类系统独有）
+su git
+</code></pre><p>下载Gitea（自行检查最新的实际下载<a href="https://web.archive.org/web/20250714161437/https://github.com/go-gitea/gitea/releases">地址</a>：</p><pre><code>mkdir /home/git/gitea
+cd /home/git/gitea
+wget https://github.com/go-gitea/gitea/releases/download/v1.4.0/gitea-1.4.0-linux-amd64 # 请自己检查最新的下载地址
+mv gitea-1.4.0-linux-amd64 gitea # 注意文件名
+chmod +x gitea
+exit
+</code></pre><p>新建Gitea服务：</p><pre><code>nano /etc/systemd/system/gitea.service
+</code></pre><p>写入：</p><pre><code>[Unit]
+Description=Gitea (Git with a cup of tea)
+After=syslog.target
+After=network.target
+#After=mysqld.service
+#After=postgresql.service
+#After=memcached.service
+#After=redis.service
+
+[Service]
+# Modify these two values and uncomment them if you have
+# repos with lots of files and get an HTTP error 500 because
+# of that
+###
+#LimitMEMLOCK=infinity
+#LimitNOFILE=65535
+RestartSec=2s
+Type=simple
+User=git
+Group=git
+WorkingDirectory=/home/git/gitea
+ExecStart=/home/git/gitea/gitea web
+Restart=always
+Environment=USER=git HOME=/home/git
+
+[Install]
+WantedBy=multi-user.target</code></pre><p>启动Gitea：</p><pre><code>systemctl enable gitea
+systemctl start gitea
+</code></pre><p>然后在浏览器中访问，例如：git.yangmame.org</p><p>数据库和用户皆为gitea，密码为配置数据库时的密码，其它内容自行填写</p><h4>qBitttorrent</h4><p>安装qBittorrent：</p><pre><code>apt install qbittorrent-nox
+</code></pre><p>添加用户：</p><pre><code>adduser qbtuser # 这里除了密码都可以留空
+</code></pre><p>创建qBittorrent服务：</p><pre><code>nano /etc/systemd/system/qbittorrent.service
+</code></pre><p>写入：</p><pre><code>[Unit]
+Description=qBittorrent Daemon Service
+After=network.target
+
+[Service]
+User=qbtuser
+ExecStart=/usr/bin/qbittorrent-nox
+ExecStop=/usr/bin/killall -w qbittorrent-nox
+
+[Install]
+WantedBy=multi-user.target</code></pre><p>配置qBittorrent：</p><pre><code>su qbtuser
+qbittorrent-nox
+</code></pre><p>然后在浏览器中访问，例如：bt.yangmame.org</p><p>默认用户为admin，密码为adminadmin，登录之后在设置中修改用户名 密码和语言</p><p>然后在终端中按Ctrl+C停止</p><p>启动qBittorrent服务：</p><pre><code>exit # 退出qbtuser
+systemctl daemon-reload
+systemctl enable qbittorrent
+systemctl start qbittorrent
+</code></pre><p><strong><em>PS：下载目录需要更改所有者,例如：<code>chown qbtuser:qbtuser dir</code></em></strong></p><h3>Email</h3><p>如果你不想拥有自己的域名邮箱，则可以跳过</p><p>这里推荐使用<a href="https://web.archive.org/web/20250714161437/https://domain.yandex.com/domains_add/">Yandex</a>的服务</p><p>点击上面的链接照着它的说明验证域名归属权并添加相应的DNS解析 完成之后打开<a href="https://web.archive.org/web/20250714161437/https://mail.yandex.com/">https://mail.yandex.com</a>即可登录</p><h3>结束</h3><p>如果你觉得此文章帮上忙了，还请支持我：</p><p><a href="https://web.archive.org/web/20250714161437/https://www.paypal.me/MameYang/20">PayPal</a></p><p>到了这里，你就已经搭建完成了，这这时你的VPS磁盘占用应该没有超过2G</p><p>至于V2ray</p><p>客户端的配置：</p><p>协议为vmess</p><p>服务器：</p><p>主机填你的域名<br />端口填443（不是v2的1234端口）如果你在caddy中修改了端口则改为相同值<br />用户ID填v2配置文件中的UUID<br />AlterID填100<br />加密方式填none<br />用户等级为0</p><p>传输：</p><p>网络填WebSocket<br />加密填tls<br />服务器域名证书不填<br />允许不安全连接随意 （不建议开）<br />WebSocket/WS路径填/download（如果你修改了，改为相同字符)<br />HTTP头不需要管<br />其它设置就随意了（保持默认）</p><p>如果你找到的桌面/手机客户端不支持这些选项请更换</p><p>如果你使用v2ray-core（注意并删除中文注释）：</p><pre><code>{
+  &quot;log&quot;: {
+    &quot;access&quot;: &quot;&quot;,
+    &quot;error&quot;: &quot;&quot;,
+    &quot;loglevel&quot;: &quot;&quot;
+  },
+  &quot;inbound&quot;: {
+    &quot;port&quot;: 1080, # 这里为本地的代理端口
+    &quot;listen&quot;: &quot;0.0.0.0&quot;,
+    &quot;protocol&quot;: &quot;socks&quot;,
+    &quot;settings&quot;: {
+      &quot;auth&quot;: &quot;noauth&quot;,
+      &quot;udp&quot;: true,
+      &quot;ip&quot;: &quot;127.0.0.1&quot;,
+      &quot;clients&quot;: null
+    },
+    &quot;streamSettings&quot;: null
+  },
+  &quot;outbound&quot;: {
+    &quot;tag&quot;: &quot;agentout&quot;,
+    &quot;protocol&quot;: &quot;vmess&quot;,
+    &quot;settings&quot;: {
+      &quot;vnext&quot;: [
+        {
+          &quot;address&quot;: &quot;这里改为你自己的域名&quot;,
+          &quot;port&quot;: 443,
+          &quot;users&quot;: [
+            {
+              &quot;id&quot;: &quot;这里改为服务端的UUID&quot;,
+              &quot;alterId&quot;: 100,
+              &quot;security&quot;: &quot;none&quot;
+            }
+          ]
+        }
+      ],
+      &quot;servers&quot;: null
+    },
+    &quot;streamSettings&quot;: {
+      &quot;network&quot;: &quot;ws&quot;,
+      &quot;security&quot;: &quot;tls&quot;,
+      &quot;tcpSettings&quot;: null,
+      &quot;kcpSettings&quot;: null,
+      &quot;wsSettings&quot;: {
+        &quot;connectionReuse&quot;: true,
+        &quot;path&quot;: &quot;/download&quot;, # 这里为服务端的路径
+        &quot;headers&quot;: null
+      }
+    },
+    &quot;mux&quot;: {
+      &quot;enabled&quot;: true
+    }
+  },
+  &quot;inboundDetour&quot;: null,
+  &quot;outboundDetour&quot;: [
+    {
+      &quot;protocol&quot;: &quot;freedom&quot;,
+      &quot;settings&quot;: {
+        &quot;response&quot;: null
+      },
+      &quot;tag&quot;: &quot;direct&quot;
+    },
+    {
+      &quot;protocol&quot;: &quot;blackhole&quot;,
+      &quot;settings&quot;: {
+        &quot;response&quot;: {
+          &quot;type&quot;: &quot;http&quot;
+        }
+      },
+      &quot;tag&quot;: &quot;blockout&quot;
+    }
+  ],
+  &quot;dns&quot;: {
+    &quot;servers&quot;: [
+      &quot;8.8.8.8&quot;,
+      &quot;8.8.4.4&quot;,
+      &quot;localhost&quot;
+    ]
+  },
+  &quot;routing&quot;: {
+    &quot;strategy&quot;: &quot;rules&quot;,
+    &quot;settings&quot;: {
+      &quot;domainStrategy&quot;: &quot;IPIfNonMatch&quot;,
+      &quot;rules&quot;: [
+        {
+          &quot;type&quot;: &quot;field&quot;,
+          &quot;port&quot;: null,
+          &quot;outboundTag&quot;: &quot;direct&quot;,
+          &quot;ip&quot;: [
+            &quot;0.0.0.0/8&quot;,
+            &quot;10.0.0.0/8&quot;,
+            &quot;100.64.0.0/10&quot;,
+            &quot;127.0.0.0/8&quot;,
+            &quot;169.254.0.0/16&quot;,
+            &quot;172.16.0.0/12&quot;,
+            &quot;192.0.0.0/24&quot;,
+            &quot;192.0.2.0/24&quot;,
+            &quot;192.168.0.0/16&quot;,
+            &quot;198.18.0.0/15&quot;,
+            &quot;198.51.100.0/24&quot;,
+            &quot;203.0.113.0/24&quot;,
+            &quot;::1/128&quot;,
+            &quot;fc00::/7&quot;,
+            &quot;fe80::/10&quot;
+          ],
+          &quot;domain&quot;: null
+        }
+      ]
+    }
+  }
+}</code></pre>

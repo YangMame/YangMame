@@ -1,0 +1,17 @@
+{
+  "title": "Linux下如何合理利用SSD和HDD",
+  "date": "2019-08-18T00:00:00+08:00",
+  "lastmod": "2026-04-19T23:14:48+08:00",
+  "url": "/linux-with-ssd-and-hdd.html",
+  "type": "posts",
+  "original_slug": "linux-with-ssd-and-hdd",
+  "typecho_id": 7
+}
+<p>之前尝试过lvm-cache与bcache，发现性能都挺。。。</p><p>这篇文章就想记录下我目前使用的新方案</p><p>硬盘组合是：</p><ul><li>一块256G的nvme固态硬盘</li><li>俩块2T的机械硬盘</li></ul><p>这里简单说下我之前使用的方案吧：</p><p>俩块HDD使用mdadm组raid1，使用luks加密，并格式化为bcache后端设备，使用btrfs文件系统<br />SSD分512M为EFI分区，余下空间格式化为bcache的缓存设备。</p><p>看起来没什么毛病，但是实际使用时，如果有大量/大型文件的读写就会造成系统卡顿，且一些命令都会卡住<br />忍到了最近，入了块能容下之前系统数据的移动硬盘备份包了数据</p><p>本来想换回lvm-cache的，但觉得这货应该也不会比bcache好到哪里</p><p>于是想到了工作时做chroot环境用到的<code>mount --bind xxx xxx</code></p><p>经过实验和重装是可行的：</p><pre><code>...
+/dev/mapper/data    /mnt/data    btrfs    defaults    0 0
+/mnt/data/home      /home        none     bind        0 0
+/mnt/data/var       /var         none     bind        0 0
+...</code></pre><p>这里的<code>/dev/mapper/data</code>是mdadm组raid1使用luks加密后的块设备，在<code>/etc/crypttab</code>里写入解密的配置让系统启动时自动解密为<code>/dev/mapper/data</code><br />把它当作数据盘挂载在<code>/mnt/data</code>后在里面创建home和var目录，之所以选择这俩目录挂载到机械硬盘是因为这俩个目录的读写最频繁且数据量最大（home不用说，var是各类软件丢数据和日志的地方）</p><p>如果你固态硬盘足够大或者对var目录里的读写有性能要求可以改成如下：</p><pre><code>...
+/dev/mapper/data    /mnt/data    btrfs    defaults    0 0
+/mnt/data           /home        none     bind        0 0
+...</code></pre><p><strong>要注意的是<code>/dev/mapper/data</code>一定要写在它们前面，因为系统是按顺序挂载的</strong></p>

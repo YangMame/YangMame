@@ -1,0 +1,17 @@
+baseURL = 'https://yangmame.github.io/YangMame/'
+locale = 'zh-CN'
+defaultContentLanguage = 'zh-cn'
+title = 'YangMame'
+timeZone = 'Asia/Shanghai'
+disableKinds = ['taxonomy', 'term']
+[params]
+  description = 'less is more'
+[pagination]
+  pagerSize = 5
+[outputs]
+  home = ['HTML', 'RSS', 'JSON']
+[markup.goldmark.renderer]
+  unsafe = true
+
+[security]
+  allowContent = ['text/html', 'text/markdown']

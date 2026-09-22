@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ if not .IsHome }}{{ .Title }} · {{ end }}{{ site.Title }}</title>
+<meta name="description" content="{{ if .IsPage }}{{ .Plain | htmlUnescape | truncate 150 }}{{ else }}{{ site.Params.description }}{{ end }}">
+<link rel="canonical" href="{{ .Permalink }}">
+<link rel="stylesheet" href="{{ "assets/style.css" | relURL }}">
+<link rel="alternate" type="application/rss+xml" title="YangMame RSS" href="{{ "index.xml" | relURL }}">
+</head>
+<body>
+<header class="site-header"><a class="brand" href="{{ site.Home.RelPermalink }}">YangMame<span>less is more</span></a><nav aria-label="主导航"><a href="{{ site.Home.RelPermalink }}">文章</a><a href="{{ "archives/" | relURL }}">归档</a><a href="{{ "友链.html" | relURL }}">友链</a><a href="{{ "search/" | relURL }}">搜索</a></nav></header>
+<main id="main">{{ block "main" . }}{{ end }}</main>
+<footer>© {{ now.Year }} YangMame <span>以文字记录探索 · <a href="{{ "index.xml" | relURL }}">RSS</a></span></footer>
+</body></html>

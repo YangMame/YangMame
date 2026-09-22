@@ -1,0 +1,78 @@
+{
+  "title": "LG Gram 上手",
+  "date": "2019-06-14T04:20:00+08:00",
+  "lastmod": "2026-04-19T23:14:50+08:00",
+  "url": "/lg-gram.html",
+  "type": "posts",
+  "original_slug": "lg-gram",
+  "typecho_id": 8
+}
+<p>由于pixelbook的半残不废加上出差在外，想换个续航叼且Linux友好的无独显笔记本。同事之前推荐过2018款的LG Gram就一直关注着这个系列，之后出了2019款便想着入手了。</p><p>淘宝上有加装内存且有保修的店家，但价格还是不太理想，所以终于等到618京东稍微降了点价就入了（白条分期+信用卡，留下了没钱的眼泪），上手用了一段时间后自己加装了8G内存（编译 Gentoo 终于不用怕经常爆内存了，还能丢tmpfs编译）</p><p>因为有了雷电接口，部分 Linux 发行版会开机时刷 acpi error 错误造成很大概率不能正常启动，对于 5.x.x 的内核可以直接通过加入 <code>pci=nommconf</code> 内核参数解决。</p><p>LG gram目前未解决的问题有：</p><ul><li>设置功能键未正常驱动，可以设置快捷键启动设置</li><li>禁用/启用触摸板的功能键未正常驱动，可以设置快捷键但状态灯不会变化</li><li>阅读模式的功能键未正常驱动，可以安装 redshift 并配合 plasma 插件+快捷键获得较完美的体验</li><li>充电到 80% 自动断电的功能未正常驱动，目前无解决方案，不过不要紧</li></ul><p>以下列出下它目前Gentoo的主要配置：<br /><code>/etc/portage/make.conf</code>:</p><pre><code>COMMON_FLAGS=&quot;-march=native -O2 -pipe&quot;
+CFLAGS=&quot;${COMMON_FLAGS}&quot;
+CXXFLAGS=&quot;${COMMON_FLAGS}&quot;
+FCFLAGS=&quot;${COMMON_FLAGS}&quot;
+FFLAGS=&quot;${COMMON_FLAGS}&quot;
+MAKEOPTS=&quot;-j6&quot;
+
+# NOTE: This stage was built with the bindist Use flag enabled
+PORTDIR=&quot;/usr/portage&quot;
+DISTDIR=&quot;/usr/portage/distfiles&quot;
+PKGDIR=&quot;/usr/portage/packages&quot;
+
+# This sets the language of build output to English.
+# Please keep this setting intact when reporting bugs.
+LC_MESSAGES=C
+
+#GENTOO_MIRRORS=&quot;https://mirrors.ustc.edu.cn/gentoo/&quot;
+GENTOO_MIRRORS=&quot;https://mirrors.tuna.tsinghua.edu.cn/gentoo/&quot;
+EMERGE_DEFAULT_OPTS=&quot;--keep-going --with-bdeps=y&quot;
+#EMERGE_DEFAULT_OPTS=&quot;--keep-going --with-bdeps=y --load-average --jobs=5&quot;
+FEATURES=&quot;ccache userfetch&quot;
+CCACHE_SIZE=&quot;15G&quot;
+ACCEPT_KEYWORDS=&quot;~amd64&quot;
+ACCEPT_LICENSE=&quot;*&quot;
+L10N=&quot;en-US zh-CN en zh&quot;
+LINGUAS=&quot;en_US zh_CN en zh&quot;
+VIDEO_CARDS=&quot;intel i965&quot;
+CPU_FLAGS=&quot;aes avx avx2 f16c fma3 mmx mmxext pclmul popcnt sse sse2 sse3 sse4_1 sse4_2 ssse3&quot;
+CPU_FLAGS_X86=&quot;${CPU_FLAGS}&quot;
+
+# USE
+BASE_SYSTEM=&quot;-plymouth btrfs device-mapper libkms -grub systemd pulseaudio networkmanager bluetooth touchpad mtp cryptsetup iptables initramfs gnuefi lvm&quot;
+APP=&quot;konsole dolphin cups fcitx chromium telegram -nautilus 7zip rar vim samba cups&quot;
+DESKTOP=&quot;kvantum user-session infinality emoji cjk gtk gtk3 legacy-systray -gnome gnome-keyring -gnome-shell browser-integration crypt display-manager sddm&quot;
+ELSE=&quot;-bindist vim-syntax git bash-completion client icu python brightness-control vaapi&quot;
+USE=&quot;${BASE_SYSTEM} ${APP} ${DESKTOP} ${ELSE}&quot;
+
+FUCK_FONTS=&quot;/usr/share/fonts/arphicfonts&quot;
+INSTALL_MASK=&quot;${FUCK_FONTS}&quot;
+
+RUBY_TARGETS=&quot;ruby26 ruby25&quot;
+LLVM_TARGETS=&quot;X86&quot;</code></pre><p><code>/etc/portage/package.use/default</code>:</p><pre><code>dev-lang/python sqlite
+sys-apps/dbus user-session
+sys-kernel/gentoo-sources experimental symlink
+app-portage/layman sync-plugin-portage
+net-wireless/wpa_supplicant -qt5
+app-i18n/fcitx gtk3 opencc
+app-admin/keepassxc yubikey autotype network browser
+net-misc/remmina ssh rdp vnc
+app-editors/vim lua luajit perl ruby terminal
+app-office/libreoffice java
+
+app-crypt/pinentry gnome-keyring
+
+# pulseaudio-modules-bt
+media-sound/pulseaudio -bluetooth
+
+# Qtox
+media-video/ffmpeg webp v4l
+
+# Neofetch
+www-client/w3m imlib
+
+# Fish
+dev-libs/libpcre2 pcre32
+
+# Chromium
+www-client/chromium widevine jumbo-build
+net-libs/nodejs inspector</code></pre><p><code>kernel cmdline</code>:</p><pre><code>dolvm crypt_root=UUID=1758cbec-afa7-434f-84a7-5afb7270bccf resume=/dev/mapper/system-swap root=/dev/mapper/system-root root_trim=yes quite loglevel=0 pci=nommconf</code></pre><p><a href="{{< siteurl "usr/uploads/2019/06/805646452.txt" >}}">kernel-config</a></p><p><strong><em> 又又又水了一篇文章，嘿嘿嘿 </em></strong></p>

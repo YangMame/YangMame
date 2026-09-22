@@ -1,0 +1,170 @@
+{
+  "title": "这年头该用啥代理？",
+  "date": "2019-05-20T23:00:00+08:00",
+  "lastmod": "2026-04-19T23:14:51+08:00",
+  "url": "/proxy.html",
+  "type": "posts",
+  "original_slug": "proxy",
+  "typecho_id": 9
+}
+<h1>富强、民主、文明、和谐</h1><h1>自由、平等、公正、法治</h1><h1>爱国、敬业、诚信、友善</h1><h2>更新</h2><p>19.4.8更新权限配置</p><h2>Server</h2><h3>Trojan</h3><p>这里还是说在Debian上的搭建方式</p><p>首先建议你升级到Debian 10（buster）：</p><pre><code>apt update
+apt dist-upgrade
+cp /etc/apt/sources.list /etc/apt/sources.list.bak
+sed -i 's/stretch/buster/g' /etc/apt/sources.list #将stretch更换为你的codename
+apt update
+apt dist-upgrade
+apt --purge autoremove</code></pre><p>然后安装Trojan：</p><pre><code>apt install trojan</code></pre><p>Trojan的配置位于<code>/etc/trojan.json</code></p><p>编辑它将<code>&quot;password&quot;:</code>内的值改为你自己的密码<br /><code>&quot;cert&quot;:</code>和<code>&quot;key&quot;:</code>改为你网站的ssl证书和私钥<br />通过acme申请证书：</p><pre><code># 安装acme
+curl  https://get.acme.sh | sh
+echo 'alias acme.sh=~/.acme.sh/acme.sh' &gt;&gt; ~/.bashrc
+source ~/.bashrc
+# 声明Cloudflare帐号与API KEY并申请证书(在这个[页面](https://www.cloudflare.com/a/profile)点击Global API Key---&gt;View API Key即可看到):
+export CF_Key=&quot;你的API KEY&quot;
+export CF_Email=&quot;你的邮箱&quot;
+acme.sh --issue --dns dns_cf -d google.com -d *.google.com #这里的google.com换成你的域名
+# 安装证书：
+mkdir -p /etc/letsencrypt/live/google.com/
+acme.sh  --installcert  -d  google.com   \ # 记得更改域名
+        --key-file   /etc/letsencrypt/live/google.com/privkey.pem \ # 记得更改域名
+        --fullchain-file /etc/letsencrypt/live/google.com/fullchain.pem \ # 记得更改域名
+        --reloadcmd  &quot;chown -R nginx:nginx /etc/letsencrypt/ &amp;&amp; systemctl restart trojan&quot; # 这里的nginx注意修改为nginx使用的用户名</code></pre><p>（完整内容可以阅读<a href="{{< siteurl "极限建站.html" >}}">这篇文章</a>）<br />其他可保持默认</p><p>如果你使用Nginx，则建议将trojan服务(/lib/systemd/system/trojan.service)的运行用户修改为nginx或www-data（其它web server用对应的用户也可以）：</p><pre><code>...
+User=nginx # 或www-data 
+...</code></pre><p>否则将证书的权限开放出来（不建议）:</p><pre><code>chmod 755 -R /etc/letsencrypt/ # 记得修改acme.sh的--reloadcmd参数</code></pre><p>启用服务：</p><pre><code>systemctl enable trojan
+systemctl start trojan</code></pre><p><hr></p><h3>Nginx</h3><p>Trojan对于非Trojan客户端的请求都会转向服务端本地80端口（仍是443端口），这里选用nginx作为web服务器</p><pre><code>apt install nginx
+nano /etc/nginx/sites-enabled/default</code></pre><p>所以nginx的配置不能写有监听443，监听在本地的80端口即可</p><p>至于其它配置照常写就行了（关于ssl证书等配置将无效）</p><p>如果你还希望运行v2ray则加上（因为trojan还没有像样的手机客户端，所以只能先跑个v2ray）：</p><pre><code>...
+ location /download {
+        proxy_redirect off;
+        proxy_pass http://localhost:1234;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection &quot;upgrade&quot;;
+        proxy_set_header Host $http_host;
+        }
+...</code></pre><p>启动Nginx：</p><pre><code>systemctl enable nginx
+systemctl start nginx</code></pre><p><hr></p><h3>V2ray</h3><p>V2ray的TLS+websocket+Nginx应该是最稳的方案之一了<br />但是延迟却比较感人，且因为GO未支持tls1.3还只能用tls1.2</p><pre><code>wget https://install.direct/go.sh -O v2ray.sh
+bash v2ray.sh</code></pre><p>更改配置:</p><pre><code>rm /etc/v2ray/config.json
+nano /etc/v2ray/config.json</code></pre><p>写入(请注意并删除中文注释）：</p><pre><code>{
+  &quot;outbound&quot;: {
+    &quot;streamSettings&quot;: null,
+    &quot;tag&quot;: null,
+    &quot;protocol&quot;: &quot;freedom&quot;,
+    &quot;mux&quot;: null,
+    &quot;settings&quot;: null
+  },
+  &quot;log&quot;: {
+    &quot;access&quot;: &quot;/var/log/v2ray/access.log&quot;,
+    &quot;loglevel&quot;: &quot;info&quot;,
+    &quot;error&quot;: &quot;/var/log/v2ray/error.log&quot;
+  },
+  &quot;outboundDetour&quot;: [{
+      &quot;tag&quot;: &quot;direct&quot;,
+      &quot;protocol&quot;: &quot;freedom&quot;,
+      &quot;settings&quot;: null
+    },
+    {
+      &quot;tag&quot;: &quot;blocked&quot;,
+      &quot;protocol&quot;: &quot;blackhole&quot;,
+      &quot;settings&quot;: null
+    }
+  ],
+  &quot;inbound&quot;: {
+    &quot;streamSettings&quot;: {
+      &quot;network&quot;: &quot;ws&quot;,
+      &quot;kcpSettings&quot;: null,
+      &quot;wsSettings&quot;: {
+        &quot;path&quot;: &quot;/download&quot; #这里必须和Nginx配置中&quot;/download&quot;的路径一样
+      },
+      &quot;tcpSettings&quot;: null,
+      &quot;tlsSettings&quot;: {},
+      &quot;security&quot;: &quot;&quot;
+    },
+    &quot;settings&quot;: {
+      &quot;ip&quot;: null,
+      &quot;udp&quot;: true,
+      &quot;clients&quot;: [{
+        &quot;alterId&quot;: 100,
+        &quot;security&quot;: &quot;none&quot;,
+        &quot;id&quot;: &quot;xxxx-xxxx-xxxx-xxxx&quot; #请访问 https://www.uuidgenerator.net/ 获取UUID并改入
+      }],
+      &quot;auth&quot;: null
+    },
+    &quot;protocol&quot;: &quot;vmess&quot;,
+    &quot;port&quot;: 1234, #这里的端口也必须和Nginx配置中&quot;/download&quot;的端口一样
+    &quot;listen&quot;: null
+  },
+  &quot;inboundDetour&quot;: null,
+  &quot;routing&quot;: {
+    &quot;settings&quot;: {
+      &quot;rules&quot;: [{
+        &quot;ip&quot;: [
+          &quot;0.0.0.0/8&quot;,
+          &quot;10.0.0.0/8&quot;,
+          &quot;100.64.0.0/10&quot;,
+          &quot;127.0.0.0/8&quot;,
+          &quot;169.254.0.0/16&quot;,
+          &quot;172.16.0.0/12&quot;,
+          &quot;192.0.0.0/24&quot;,
+          &quot;192.0.2.0/24&quot;,
+          &quot;192.168.0.0/16&quot;,
+          &quot;198.18.0.0/15&quot;,
+          &quot;198.51.100.0/24&quot;,
+          &quot;203.0.113.0/24&quot;,
+          &quot;::1/128&quot;,
+          &quot;fc00::/7&quot;,
+          &quot;fe80::/10&quot;
+        ],
+        &quot;domain&quot;: null,
+        &quot;type&quot;: &quot;field&quot;,
+        &quot;port&quot;: null,
+        &quot;outboundTag&quot;: &quot;blocked&quot;
+      }],
+      &quot;domainStrategy&quot;: null
+    },
+    &quot;strategy&quot;: &quot;rules&quot;
+  },
+  &quot;dns&quot;: null
+}
+# 你可真鸡儿长</code></pre><p>启动V2ray服务：</p><pre><code>systemctl enable v2ray
+systemctl start v2ray</code></pre><h2>Client</h2><h3>Trojan</h3><p>Cient配置文件示例(注意并删除中文注释)：</p><pre><code>{
+    &quot;run_type&quot;: &quot;client&quot;,
+    &quot;local_addr&quot;: &quot;127.0.0.1&quot;,
+    &quot;local_port&quot;: 这里为你本地的socks5代理端口，例如1080,
+    &quot;remote_addr&quot;: &quot;这里改为你网站的地址，例如google.com&quot;,
+    &quot;remote_port&quot;: 这里改为你的端口，例如443,
+    &quot;password&quot;: [&quot;这里改为你的密码&quot;],
+    &quot;append_payload&quot;: true,
+    &quot;log_level&quot;: 1,
+    &quot;ssl&quot;: {
+        &quot;verify&quot;: true,
+        &quot;verify_hostname&quot;: true,
+        &quot;cert&quot;: &quot;&quot;,
+        &quot;cipher&quot;: &quot;ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES128-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA:AES128-SHA:AES256-SHA:DES-CBC3-SHA&quot;,
+        &quot;sni&quot;: &quot;这里改为你网站的地址，例如google.com&quot;,
+        &quot;alpn&quot;: [
+            &quot;h2&quot;,
+            &quot;http/1.1&quot;
+        ],
+        &quot;reuse_session&quot;: true,
+        &quot;curves&quot;: &quot;&quot;,
+        &quot;sigalgs&quot;: &quot;&quot;
+    },
+    &quot;tcp&quot;: {
+        &quot;keep_alive&quot;: true,
+        &quot;no_delay&quot;: true,
+        &quot;fast_open&quot;: true,
+        &quot;fast_open_qlen&quot;: 5
+    }
+}</code></pre><p>当然，你可以使用这个生成配置：<a href="https://web.archive.org/web/20250714143406/https://trojan-gfw.github.io/trojan-config-gen/">https://trojan-gfw.github.io/trojan-config-gen/</a></p><p>记得启用服务：<br />Gentoo:</p><pre><code>rc-update add trojan default
+rc-service trojan start</code></pre><p>systemd:</p><pre><code>systemctl enable trojan
+systemctl start trojan</code></pre><h4>Known issues</h4><p>如果你的Server有ipv6 IP<br />修改<code>/etc/gai.conf</code></p><p>加入或去掉注释以下内容然后重启网络（简单重启也行）：</p><pre><code>precedence ::ffff:0:0/96  100</code></pre><h4>Community</h4><p><a href="https://web.archive.org/web/20250714143406/https://t.me/joinchat/Ftpt_RAHo9bp3ECAuKEhwQ">Telegram Group</a><br /><a href="https://web.archive.org/web/20250714143406/https://t.me/trojan_chan">Telegram Channel</a></p><p><hr></p><h3>V2ray</h3><p>这货配置文件太鸡儿长了<br />对于json配置我还是直接丢链接吧：<a href="https://web.archive.org/web/20250714143406/https://github.com/KiriKira/vTemplate">https://github.com/KiriKira/vTemplate</a></p><p>这里说下V2ray手动配置(Android客户端为例，不建议直接导入使用json配置）：</p><pre><code>###服务器###
+主机：域名（无路径）
+端口： 443
+用户ID：填server的UUID
+Alterid： 100
+加密方式：none
+用户等级： 0
+网络： WebSocket 或 ws
+加密方式： tls
+服务器证书域名： 不填
+允许不安全连接： 关闭
+WebSocket或ws路径： /download
+HTTP头： 不填</code></pre>

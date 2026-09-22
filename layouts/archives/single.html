@@ -1,0 +1,1 @@
+{{ define "main" }}<p class="eyebrow">THE ARCHIVE</p><h1>文章归档</h1>{{ range (where site.RegularPages "Type" "posts").GroupByDate "2006" }}<section class="archive"><h2>{{ .Key }}</h2>{{ range .Pages }}<div><time>{{ .Date.Format "01.02" }}</time><a href="{{ .RelPermalink }}">{{ .Title }}</a></div>{{ end }}</section>{{ end }}{{ end }}

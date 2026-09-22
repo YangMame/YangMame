@@ -1,0 +1,175 @@
+{
+  "title": "Gentoo安装教程",
+  "date": "2018-08-13T00:00:00+08:00",
+  "lastmod": "2026-04-19T23:15:01+08:00",
+  "url": "/Gentoo安装教程.html",
+  "type": "posts",
+  "original_slug": "Gentoo安装教程",
+  "typecho_id": 15
+}
+<h1>这可能是除了官方wiki写的最全的教程了</h1><h1>(可能还存在错误之处,欢迎指出)</h1><p><strong>2018.7.3更新，完善make.conf的说明</strong></p><h2>准备:</h2><ol><li>至少一个人</li><li>一双能打字的手</li><li>一个能思考的脑袋</li><li>俩部电影</li><li>至少一台正常的电脑</li><li>一个正常的U盘</li><li>一个稳定的网络环境</li><li>一个稳定的电源</li><li>一个已能完美运行的系统.(如果你是Linux系统则不需要下一个)</li><li>一个<a href="https://web.archive.org/web/20250701141446/http://cdimage.ubuntu.com/" title="Ubuntu ISO">Ubuntu ISO</a>镜像文件</li></ol><p>如果你是Windows系统:<br />下载<a href="https://web.archive.org/web/20250701141446/https://rufus.akeo.ie/?locale=zh_CN" title="Rufus">Rufus</a>刻录Ubuntu镜像<br />至于UEFI Legacy GPT和MBR等我就不说了,如果不熟悉这些玩Gentoo恐怕困难重重</p><p>如果你已有一个正常运行的Linux,恭喜,安装Gentoo会简单很多.<br />安装完并确定可用之后之后你可以tar打包已安装的系统使用live CD解压过去并修改相关配置</p><h2>需要知道的一些东西</h2><p>Gentoo有很多好用的工具<br />这里说下安装过程会遇到的</p><p>eselect可以用来配置系统</p><p>比如<code>eselect python set X</code>可以设置默认的python（<code>eselect python list</code>查看可用选项）<br /><code>eselect fontconfig enable X</code>可以启用xxx字体配置（<code>eselct fontconfig list</code>查看可用选项）</p><p>etc-update可以用来更新or生成配置文件</p><p>假如系统更新了软件 有新的配置文件 Gentoo会生成一个临时的配置文件，需要自己手动删除 合并或覆盖 可以通过运行<code>etc-update</code>进行</p><p>记住，要尽量保证emerge提示无可用更新的配置文件（特别是更新portage的配置文件的时候）</p><h2>准备磁盘</h2><p>启动到live CD(已有Linux系统忽略这句)<br />使用你喜欢的工具进行分区(或者直接用gparted)<br />这里会声明下分区,之后的过程将使用这些变量</p><h4>UEFI(GPT):</h4><pre><code>sda1 ---/boot---&gt;vfat                   &gt;=200M     #注意分区设置flags为esp
+sda2 ---/---&gt;ext4,btrfs,xfs,jfs.etc     &gt;=20G      #建议至少20G大小
+sda3 ---swap---&gt;                        &gt;=2G       #除非你16G内存,即使你8G内存也建议设置2G的swap
+</code></pre><h4>Legacy(MBR):</h4><pre><code>sda1 ---/boot---&gt;ext2                   &gt;=200M     #可以不设置此分区
+sda2 ---/---&gt;ext4,btrfs,xfs,jfs.etc     &gt;=20G      #建议至少20G大小
+sda3 ---swap---&gt;                        &gt;=2G       #除非你16G内存,即使你8G内存也建议设置2G的swap
+</code></pre><p><hr></p><p>创建目录:</p><pre><code>mkdir -v /mnt/gentoo
+</code></pre><p>挂载目录:</p><pre><code>mount -v /dev/sda2 /mnt/gentoo
+</code></pre><h2>安装基本文件</h2><p>在这里你需要选择一个镜像站,在这里列出几个速度比较快的镜像站,请亲自测试选择镜像站:</p><p><a href="https://web.archive.org/web/20250701141446/https://mirrors.ustc.edu.cn/">USTC</a><br /><a href="https://web.archive.org/web/20250701141446/https://mirrors.tuna.tsinghua.edu.cn/">TUNA</a><br /><a href="https://web.archive.org/web/20250701141446/http://mirrors.163.com/">163</a></p><p>进入镜像站的<code>/gentoo/releases/amd64/autobuilds/</code>目录</p><p>如果你对systemd没有刚需则进入<code>current-stage3-amd64/</code>目录选择最新的<code>stage3</code>下载到本地的<code>/mnt/gentoo</code>目录,例如:stage3-amd64-20171019.tar.bz2</p><p>如果你需要systemd,则进入<code>current-stage3-amd64-systemd/</code>目录选择最新的<code>stage3</code>下载到本地的<code>/mnt/gentoo</code>目录,例如:stage3-amd64-systemd-20171018.tar.bz2</p><p>下载完成之后进入gentoo的根目录并解压文件:</p><pre><code>cd /mnt/gentoo
+tar vxpf stage3-*.tar.bz2或xz --xattrs-include='*.*' --numeric-owner
+</code></pre><h2>配置<code>make.conf</code>和Portage Mirror</h2><p>以下参数在经过自己调整或选择之后加入到 <code>/mnt/gentoo/etc/portage/make.conf</code></p><ul><li>USE: 首先,你可以删掉默认的USE标记，加上<code>-bindist</code> (不了解USE的情况下建议如此)</li><li>CFLAGS: 将CFLAGS修改为<code>CFLAGS=&quot;-march=native -O2 -pipe&quot;</code> 或者你也可以指定.例如我的Intel CPU是haswell,将native换成haswell就行(不确定就不要指定).你也可以在<a href="https://web.archive.org/web/20250701141446/https://www.funtoo.org/Subarches">这里</a>看到所有可以设置的值</li><li>MAKEOPTS: 根据你的CPU核心数设置MAKEOPTS例如双四线程设置为<code>MAKEOPTS=&quot;-j5&quot;</code></li><li>GENTOO_MIRRORS: 设置为<code>GENTOO_MIRRORS=&quot;https://mirrors.ustc.edu.cn/gentoo/&quot;</code> 请自行选择速度最快的Mirror</li><li>EMERGE_DEFAULT_OPTS: 设置为<code>EMERGE_DEFAULT_OPTS=&quot;--keep-going --with-bdeps=y&quot;</code>是个不错的选择,keep going意为安装一堆软件时遇到编译错误自动跳过这个软件继续编译安装</li><li>FEATURES: 在这里最好写成<code># FEATURES=&quot;${FEATURES} -userpriv -usersandbox -sandbox&quot;</code>,最好在前面加上#注释掉,在你编译软件遇到权限不足时去掉注释即可解决问题（但请务必注意是不是因为<code>rm -rf /*</code>等命令权限不足，因为说不定你的ebuild文件被篡改了）</li><li>ACCEPT_KEYWORDS: 如果你想用作桌面/学习/开发系统那就务必加上<code>ACCEPT_KEYWORDS=&quot;~amd64&quot;</code>，服务器/工作/家/娱乐用可以忽略</li><li>ACCEPT_LICENSE: 加上<code>ACCEPT_LICENSE=&quot;*&quot;</code>表示此系统接受所有软件许可证,即不论非自由还是自由软件都接受,非商业用户基本不需要考虑</li><li>L10N: 设置为<code>L10N=&quot;en-US zh-CN en zh&quot;</code></li><li>LINGUAS: 设置为<code>LINGUAS=&quot;en_US zh_CN en zh&quot;</code></li><li>VIDEO_CARDS: 根据你的显卡类型设置假如你是NVIDIA单显卡则设置为<code>VIDEO_CARDS=&quot;nvidia&quot;</code>(闭源驱动)<code>VIDEO_CARDS=&quot;nouveau&quot;</code>(开源驱动).还有radeon和intel,但如果你是双显卡例如Intel+NVIDIA则设置为<code>VIDEO_CARDS=&quot;intel i965 nvidia&quot;</code>(只要不是远古的集成显卡都是用i965)</li><li>GRUB_PLATFORMS: 如果你使用GRUB且使用UEFI启动则添加<code>GRUB_PLATFORMS=&quot;efi-64&quot;</code></li><li>Portage Mirror: 这个不是make.conf的选项.<code>mkdir /mnt/gentoo/etc/portage/repos.conf</code>创建repos.conf目录并添加如下到/mnt/gentoo/etc/portage/repos.conf/gentoo.conf文件里面(自行选择速度最快的镜像站):</li></ul><pre><code>[gentoo]
+location = /usr/portage
+sync-type = rsync
+#sync-uri = rsync://mirrors.tuna.tsinghua.edu.cn/gentoo-portage/
+sync-uri = rsync://rsync.mirrors.ustc.edu.cn/gentoo-portage/
+auto-sync = yes
+</code></pre><ul><li>这里还有个CPU_FLAGS_X86,在后面的步骤<code>emerge --sync</code>之后安装<code>app-portage/cpuid2cpuflags</code>并配置:</li></ul><pre><code>emerge --ask app-portage/cpuid2cpuflags
+cpuid2cpuflags #将输出值改入CPU_FLAGS_X86
+</code></pre><p>示例配置（请以实际为标准）：</p><pre><code># /usr/share/portage/config/make.conf.example
+
+# GCC
+CFLAGS=&quot;-march=haswell -O2 -pipe&quot;
+CXXFLAGS=&quot;${CFLAGS}&quot;
+CHOST=&quot;x86_64-pc-linux-gnu&quot;
+CPU_FLAGS_X86=&quot;aes avx avx2 fma3 mmx mmxext pclmul popcnt sse sse2 sse3 sse4_1 sse4_2 ssse3&quot;
+MAKEOPTS=&quot;-j5&quot;
+
+# USE
+SUPPORT=&quot;pulseaudio btrfs mtp git chromium&quot;
+DESKTOP=&quot;infinality emoji cjk&quot;
+FUCK=&quot;-bindist -grub -plymouth -systemd consolekit -modemmanager -gnome-shell -gnome -gnome-keyring -nautilus -modules&quot;
+ELSE=&quot;client icu sudo python&quot;
+
+USE=&quot;${SUPPORT} ${DESKTOP} ${FUCK} ${ELSE}&quot;
+
+# Portage
+PORTDIR=&quot;/usr/portage&quot;
+DISTDIR=&quot;${PORTDIR}/distfiles&quot;
+PKGDIR=&quot;${PORTDIR}/packages&quot;
+# GENTOO_MIRRORS=&quot;https://mirrors.tuna.tsinghua.edu.cn/gentoo/&quot;
+GENTOO_MIRRORS=&quot;https://mirrors.ustc.edu.cn/gentoo/&quot;
+EMERGE_DEFAULT_OPTS=&quot;--ask --verbose=y --keep-going --with-bdeps=y --load-average&quot;
+# FEATURES=&quot;${FEATURES} -userpriv -usersandbox -sandbox&quot;
+PORTAGE_REPO_DUPLICATE_WARN=&quot;0&quot;
+# PORTAGE_TMPDIR=&quot;/var/tmp/notmpfs&quot;
+
+ACCEPT_KEYWORDS=&quot;~amd64&quot;
+ACCEPT_LICENSE=&quot;*&quot;
+
+# Language
+L10N=&quot;en-US zh-CN en zh&quot;
+LINGUAS=&quot;en_US zh_CN en zh&quot;
+
+# Else
+VIDEO_CARDS=&quot;intel i965 nvidia&quot;
+
+RUBY_TARGETS=&quot;ruby24 ruby25&quot;
+
+LLVM_TARGETS=&quot;X86&quot;
+
+QEMU_SOFTMMU_TARGETS=&quot;alpha aarch64 arm i386 mips mips64 mips64el mipsel ppc ppc64 s390x sh4 sh4eb sparc sparc64 x86_64&quot;
+QEMU_USER_TARGETS=&quot;alpha aarch64 arm armeb i386 mips mipsel ppc ppc64 ppc64abi32 s390x sh4 sh4eb sparc sparc32plus sparc64&quot;
+# ABI_X86=&quot;64 32&quot;</code></pre><h2>进入Chroot环境</h2><p>复制DNS:</p><pre><code>cp --dereference /etc/resolv.conf /mnt/gentoo/etc/
+</code></pre><p>挂载必要文件系统:</p><pre><code>mount -t proc /proc /mnt/gentoo/proc
+mount --rbind /sys /mnt/gentoo/sys
+mount --make-rslave /mnt/gentoo/sys
+mount --rbind /dev /mnt/gentoo/dev
+mount --make-rslave /mnt/gentoo/dev
+</code></pre><p>Debian等发行版可能需要：</p><pre><code>test -L /dev/shm &amp;&amp; rm /dev/shm &amp;&amp; mkdir /dev/shm
+mount --types tmpfs --options nosuid,nodev,noexec shm /dev/shm
+chmod 1777 /dev/shm
+</code></pre><p>进入Chroot:</p><pre><code>chroot /mnt/gentoo /bin/bash
+source /etc/profile
+</code></pre><p>如果你有boot分区则在这里挂载上去:</p><pre><code>mount /dev/sda1 /boot
+
+</code></pre><h2>选择Profile并更新系统</h2><p>使用快照更新Portage:</p><pre><code>emerge-webrsync
+</code></pre><p>使用rsync同步:</p><pre><code>emerge --sync
+</code></pre><p>使用<code>eselect news read</code>命令阅读新闻</p><p>列出profile:</p><pre><code>eselect profile list
+</code></pre><p>如果你使用systemd则需要选上带有systemd字样的选项</p><p>如果你不使用systemd则不建议使用GNOME桌面,因为GNOME桌面依赖systemd(辣鸡)</p><p>例如不使用systemd且使用KDE桌面则选择19 default/linux/amd64/17.0/desktop/plasma:</p><pre><code>eselect profile set 19
+</code></pre><p>然后就是漫长的更新了(有钱人当我没说):</p><pre><code>emerge -auvDN --with-bdeps=y @world
+</code></pre><p>如果碰到未满足的xxx或者其它提示:</p><pre><code>emerge -auvDN --with-bdeps=y --autounmask-write @world
+etc-update # 然后输入-3就能更新配置,确保再次运行时没有可更新的文件
+emerge -auvDN --with-bdeps=y @world
+</code></pre><p><strong><em>如果以上还是不能解决问题,则进入/etc/portage目录删掉package.use,package.mask和package.unmask文件或目录再次尝试</em></strong></p><p>到了这里,你可以去看电影了...</p><p>等它跑完了,先别急<br />运行下这几个命令:</p><pre><code>emerge @preserved-rebuild
+perl-cleaner --all
+emerge -auvDN --with-bdeps=y @world
+</code></pre><p>确定没有更新之后再继续，否则查看输出尝试重复运行</p><p>如果你在<code>emerge -auvDN --with-bdeps=y @world</code>时提示带有<code>bindist</code>字样且你已启用<code>ACCEPT_KEYWORDS=&quot;~amd64&quot;</code>的话<br />运行如下命令之后再次重试：</p><pre><code>cd /usr/portage/dev-libs/openssl/
+ebuild openssl-1.0.2o-r6.ebuild merge # 这里openssl的版本可能和你的不一样，运行ls命令查看可用版本，替换为版本号带o字母的即可</code></pre><h2>配置时区和地区</h2><pre><code>echo &quot;Asia/Shanghai&quot; &gt; /etc/timezone
+emerge --config sys-libs/timezone-data
+
+echo &quot;en_US.UTF-8 UTF-8
+zh_CN.UTF-8 UTF-8&quot; &gt;&gt; /etc/locale.gen
+
+locale-gen
+
+eselect locale list
+</code></pre><p>这里建议使用英语易于排错,之后你可以自行换成中文:</p><pre><code>eselect locale set X # X换成上面命令显示的序号
+</code></pre><h2>配置fstab,安装文件系统工具</h2><p>如果你和我一样懒</p><p>可以下载此脚本自动配置fstab(引自Arch的genfstab):</p><pre><code>wget https://raw.githubusercontent.com/YangMame/Gentoo-Installer/master/genfstab
+chmod +x genfstab
+#可选 cp genfstab /usr/bin/
+./genfstab / &gt; /etc/fstab
+nano /etc/fstab #最好检查下此文件,删掉无用挂载点
+</code></pre><p>上面的脚本在chroot环境下不能正常使用-U参数在fstab写入分区的UUID</p><p>挂载点主要有俩种格式:</p><pre><code>/dev/sda1    /boot    vfat或ext2    defaults    0 0
+/dev/sda2    /    ext4或btrfs,jfs,xfs.etc    defaults    0 0
+/dev/sda3    none    swap    defaults    0 0
+</code></pre><p>这里的UUID通过blkid查看</p><pre><code>UUID=xxxxxxxxxxx   /boot    vfat或ext2    defaults    0 0
+UUID=xxxxxxxxxxx    /    ext4或btrfs,jfs,xfs.etc    defaults    0 0
+UUID=xxxxxxxxxxx    none    swap    defaults    0 0
+</code></pre><p>如果你使用非ext4文件系统则在编译内核前需要另外安装相应的工具:</p><pre><code>btrfs: emerge sys-fs/btrfs-progs
+xfs: emerge sys-fs/xfsprogs
+jfs: emerge sys-fs/jfsutils
+</code></pre><h2>安装NetworkManager</h2><p>没错,我很懒,又加上我是KDE桌面用户,所以我选择使用NetworkManager连接网络:</p><pre><code>emerge -av networkmanager
+</code></pre><p>如果它说有未满足的xxxx或者其它提示:</p><pre><code>emerge --autounmask-write networkmanager
+etc-update --automode -3
+emerge networkmanager
+</code></pre><p>openRC(即非systemd)添加开机服务:</p><pre><code>rc-update add NetworkManager default
+</code></pre><p>systemd添加开机服务:</p><pre><code>systemctl enable NetworkManager
+</code></pre><p>在/etc/conf.d/hostname内修改主机名,例如:</p><pre><code>echo hostname=\&quot;Test\&quot; &gt; /etc/conf.d/hostname
+
+</code></pre><h2>安装一些必要工具并配置</h2><pre><code>emerge app-admin/sysklogd sys-process/cronie sudo layman grub
+sed -i 's/\# \%wheel ALL=(ALL) ALL/\%wheel ALL=(ALL) ALL/g' /etc/sudoers
+passwd #是时候设置root密码了
+
+</code></pre><p>如果你是systemd:</p><pre><code>sed -i 's/\# GRUB_CMDLINE_LINUX=\&quot;init=\/usr\/lib\/systemd\/systemd\&quot;/GRUB_CMDLINE_LINUX=\&quot;init=\/usr\/lib\/systemd\/systemd\&quot;/g' /etc/default/grub
+ln -sf /proc/self/mounts /etc/mtab
+systemd-machine-id-setup
+</code></pre><p>非systemd系统:</p><pre><code>rc-update add sysklogd default
+rc-update add cronie default
+
+</code></pre><h2>配置编译安装内核</h2><p>有以下推荐内核可供选择:</p><pre><code>gentoo-sources
+ck-sources
+git-sources
+</code></pre><p>这里示例使用gentoo-sources:</p><pre><code>emerge -av gentoo-sources
+</code></pre><p>如果你不会配置内核或者时间不允许可以先用<code>genkernel</code>:</p><pre><code>emerge -av genkernel
+genkernel --menuconfig all
+genkernel --install initramfs
+</code></pre><p>或者你当前运行着一个正常使用的Linux的话也可以：</p><pre><code>cd /usr/src/linux
+make localyesconfig
+# 如果询问新选项，一路回车吧，23333
+make -jX #将X替换为你想编译时的线程数
+make modules_install
+make install
+genkernel --install initramfs</code></pre><p>手动配置内核:</p><pre><code>cd /usr/src/linux
+make menuconfig
+</code></pre><p><strong>关于配置内核</strong></p><p>本站有写内核配置的文章</p><p>你也可以选择去看<a href="https://web.archive.org/web/20250701141446/http://www.jinbuguo.com/kernel/longterm-linux-kernel-options.html">金步国</a>的文章</p><p>配置完之后:</p><pre><code>make -jX #将X替换为你想编译时的线程数
+make modules_install
+make install
+genkernel --install initramfs
+</code></pre><h2>安装GRUB并创建用户</h2><p>如果你是UEFI:</p><pre><code>grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=Gentoo
+grub-mkconfig -o /boot/grub/grub.cfg
+</code></pre><p>如果出现<code>No space left on device</code></p><p>请运行：</p><pre><code>mount -t efivarfs efivarfs /sys/firmware/efi/efivars
+rm /sys/firmware/efi/efivars/dump-*</code></pre><p>然后重试（由 @Chara 提议加上）</p><p>如果你是Legacy:</p><pre><code>grub-install --target=i386-pc /dev/sda
+grub-mkconfig -o /boot/grub/grub.cfg
+</code></pre><p>创建一个管理员并设置密码:</p><pre><code>useradd -m -G users,wheel,portage,usb,video 这里换成你的用户名(小写)
+passwd 用户名
+</code></pre><h2>显卡驱动</h2><p>NVIDIA单显卡:</p><pre><code>emerge -av x11-drivers/nvidia-drivers
+</code></pre><p>Intel单显卡:</p><pre><code>emerge -av x11-drivers/xf86-video-intel
+</code></pre><p>Intel+NVIDIA双显卡请看这篇<a href="https://web.archive.org/web/20250701141446/https://blog.yangmame.top/Gentoo%E5%8F%8C%E6%98%BE%E5%8D%A1%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE.html">文章</a></p><p>其它显卡硬件待补坑 欢迎提出</p><h2>检查系统可用性</h2><p>到了这里你应该可以重启查看系统是否能正常启动,然后在安装桌面</p><p>重启前最好检查下的东西:</p><ol><li>boot目录是否有相应文件</li><li>GRUB是否正确生成配置并显示内核等文件</li><li>fstab是否正确无误</li></ol><h2>安装桌面</h2><p>首先需要确保已安装xorg-server和显卡驱动:</p><pre><code>emerge -av xorg-server
+emerge xf86-video-intel #Intel显卡驱动
+emerge nvidia-drivers #nvidia显卡驱动
+</code></pre><p>如遇需要更新配置则运行<code>etc-update --automode -3</code>并再次运行命令</p><h4>KDE:</h4><pre><code>emerge -av plasma-desktop plasma-nm plasma-pa sddm konsole
+</code></pre><p>如遇需要更新配置则运行<code>etc-update --automode -3</code>并再次运行命令</p><p>如果你是systemd:</p><pre><code>systemctl enable sddm
+</code></pre><p>openrc则编辑<code>/etc/conf.d/xdm</code>将<code>DISPLAYMANAGER</code>的值改为<code>sddm</code>并:</p><pre><code>rc-update add xdm default
+</code></pre><h4>GNOME:</h4><pre><code>emerge -av gnome-shell gdm gnome-terminal
+systemctl enable gdm
+</code></pre><p>如遇需要更新配置则运行<code>etc-update --automode -3</code>并再次运行命令</p><p><strong><em>这里只说明systemd,因为openrc并不能满足GNOME的依赖</em></strong></p>

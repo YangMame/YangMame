@@ -1,0 +1,36 @@
+{
+  "title": "DEB打包：快速构建一个Meta Package",
+  "date": "2018-11-30T16:00:00+08:00",
+  "lastmod": "2026-04-19T23:14:55+08:00",
+  "url": "/deb-meta-package.html",
+  "type": "posts",
+  "original_slug": "deb-meta-package",
+  "typecho_id": 11
+}
+<p>部分参考：<a href="https://web.archive.org/web/20250714151414/https://debian-handbook.info/browse/stable/sect.building-first-package.html">Building your First Package</a></p><p>需要安装的软件：</p><ul><li>dh-make</li><li>dpkg-dev</li></ul><p>创建工作目录：</p><pre><code>mkdir hello-1.0</code></pre><p>要求为“包名+版本号”</p><p>初始化目录（创建必要的文件）：</p><pre><code>cd hello-1.0/
+dh_make --native #本地的</code></pre><p>这里的包类型我们选择<code>single</code>（其它类型会在之后的文章说，可能）</p><pre><code>Type of package: (single, indep, library, python)
+[s/i/l/p]?</code></pre><p>之后输入<code>y</code>确认生成</p><p>这时候你当前的目录应该就多了个<code>debian</code>目录</p><p>编辑<code>debian/control</code>看到如下:</p><pre><code>Source: hello
+Section: unknown
+Priority: optional
+Maintainer: user &lt;user@unknown&gt;
+Build-Depends: debhelper (&gt;= 9)
+Standards-Version: 3.9.8
+Homepage: &lt;insert the upstream URL, if relevant&gt;
+#Vcs-Git: https://anonscm.debian.org/collab-maint/hello.git
+#Vcs-Browser: https://anonscm.debian.org/cgit/collab-maint/hello.git
+
+Package: hello
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: &lt;insert up to 60 chars description&gt;
+ &lt;insert long description, indented with spaces&gt;</code></pre><ul><li><code>Section</code>是分类，这里改成<code>misc</code></li><li><code>Maintainer</code>是维护者，这里随意（必须为“名字+空格+&lt;邮箱&gt;”的格式）</li><li><code>Homepage</code>是软件的主页，这里作为示例故保留原样</li><li><code>Package</code>决定了你的包名</li><li><code>Architecture</code>是构架支持，如果是元数据（脚本，媒体文件，文本）可以不管</li><li><code>Depends</code>是依赖，这里作为示例是没有依赖的故保留原样</li><li><code>Description</code>是软件介绍，不可写太长（最长60个字符，多的另外起行，用空格缩进）</li></ul><p>这里还有个<code>debian/changelog</code>文件用于记录修改，这里不做修改。（之后建议使用<code>dch</code>处理这个文件）</p><p>最后还有个关于版权的文件<code>debian/copyright</code>，同样这里作为示例不做修改</p><p>创建一个脚本：</p><pre><code>mkdir -p usr/bin/
+cat &lt;&lt; EOF &gt; usr/bin/hello.sh
+#!/bin/bash
+echo hello
+EOF
+chmod +x usr/bin/hello.sh</code></pre><p>你可以再丢个文本：</p><pre><code>mkdir -p usr/share/doc/hello
+cat &lt;&lt; EOF &gt; usr/share/doc/hello/README
+Hello
+EOF</code></pre><p>新建<code>.install</code>文件：</p><pre><code>cat &lt;&lt; EOF &gt; debian/hello.install
+usr/* usr</code></pre><p>你或许发现了，这里的<code>usr/xxx/xxx</code>都是相对于系统的目录的路径创建的，而<code>.install</code>文件则是告诉包管理如何处理这些文件（将包根目录内的<code>usr</code>目录复制到系统的<code>usr</code>目录）</p><p>生成<code>.dsc</code>与源码包，这些东西就是你在<code>Debian</code> 软件源<code>pool</code>目录看到的那堆东西了：</p><pre><code>dpkg-source -b .</code></pre><p>构建<code>deb</code>包，这里因为是meta包，可以直接构建，一般情况下建议使用<code>pbuilder</code>构建，之后的文章会写：</p><pre><code>dpkg-buildpackage -us -uc</code></pre><p>生成的文件都在上一级目录</p><p>最后你就可以试试安装你创建的<code>deb</code>包了：</p><pre><code>dpkg -i ../hello_1.0_amd64.deb #构架名称可能不同</code></pre><p>试试运行下吧：</p><pre><code>user@hostname:~/hello-1.0$ hello.sh
+hello</code></pre>

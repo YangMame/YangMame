@@ -1,0 +1,71 @@
+{
+  "title": "mpd+ncmpcpp配置美化教程",
+  "date": "2018-03-15T23:00:00+08:00",
+  "lastmod": "2026-04-19T23:15:08+08:00",
+  "url": "/mpd-ncmpcpp配置美化教程.html",
+  "type": "posts",
+  "original_slug": "mpd-ncmpcpp配置美化教程",
+  "typecho_id": 24
+}
+<p><img src="{{< siteurl "usr/uploads/2018/03/3669318201.png" >}}" alt="2018_03_12_12_54_18.png" title="2018_03_12_12_54_18.png"></p><p>自从开始用WM，对那些依赖特别多的软件很反感<br />至于听歌，徘徊了很多客户端，最后还是选择了mpd+ncmpcpp</p><p>mpd为后端 ncmpcpp为前端 （推荐再装个mpc作为控制端</p><p>首先安装这俩货</p><p><hr></p><p>打开mpd的配置：</p><p><code>sudo vim /etc/mpd.conf</code></p><p>将<code>music_directory</code>后的路径改为你自己的音乐目录的绝对路径</p><p>确保<code>user</code>为<code>mpd</code>，<code>group</code>没有被注释且为<code>audio</code></p><p>把<code>mpd</code>用户加入<code>audio</code>组：<br /><code>sudo gpasswd -a mpd audio</code></p><p>再往后翻找到<code># Audio Output</code></p><p>加入或修改：</p><pre><code>audio_output {
+    type        &quot;pulse&quot;
+    name        &quot;My Pulse Output&quot;
+    server        &quot;127.0.0.1&quot;
+}
+
+...
+
+audio_output {
+    type                    &quot;fifo&quot;
+    name                    &quot;my_fifo&quot;
+    path                    &quot;/tmp/mpd.fifo&quot;
+    format                  &quot;44100:16:2&quot;
+}
+</code></pre><p>运行<code>sudo rc-update add mpd default</code>和<code>sudo rc-service mpd start</code>启动<code>mpd</code>（Gentoo用户)<br /><code>sudo systemctl enable mpd</code>和<code>sudo systemctl start mpd</code>为<code>systemd</code>用户启动<code>mpd</code>的命令</p><p><hr></p><p>至于pulse也需要编辑<code>/etc/pulse/default.pa</code></p><p>找到<code>Network access</code>部分加入：<br /><code>load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1</code></p><p>运行<code>pulseaudio --kill</code>和<code>pulseaudio --start</code>载入新配置(如果可以，最好也将~/.config/pluse目录删除）</p><p><hr></p><p>到了ncmpcpp</p><p>首先在普通用户下创建目录：<code>mkdir ~/.ncmpcpp</code></p><p>编辑配置<code>vim ~/.ncmpcpp/config</code>写入：</p><pre><code># 基本配置
+ncmpcpp_directory =                     &quot;~/.ncmpcpp&quot;
+mpd_music_dir =                         &quot;这里改为Music目录的路径&quot; 
+mpd_host =                                 &quot;localhost&quot;
+mpd_port =                                &quot;6600&quot;
+mpd_connection_timeout =                 5
+
+# 界面:
+user_interface =                         &quot;alternative&quot;
+alternative_header_first_line_format =     &quot;$(white)─┤ $b$(magenta)%a$(end)$/b ├─$(end)&quot;
+alternative_header_second_line_format =    &quot;$(16)%t (%y)$(end)&quot;
+alternative_ui_separator_color =         &quot;cyan&quot;
+
+# 显示格式:
+song_columns_list_format =                 &quot;$L (10)[white]{n} $1│$7 (20)[magenta]{a} $1│$7 (20)[white]{b} $1│$7 (20)[magenta]{t} $1│$7 (20)[white]{l}&quot;
+now_playing_prefix =                     &quot;$b&quot;
+centered_cursor =                         &quot;no&quot;
+cyclic_scrolling =                         &quot;yes&quot;
+mouse_list_scroll_whole_page =             &quot;no&quot;
+
+# 杂项配置:
+autocenter_mode =                         &quot;yes&quot;
+display_bitrate =                         &quot;yes&quot;
+header_visibility =                     &quot;yes&quot;
+statusbar_visibility =                     &quot;yes&quot;
+progressbar_look =                         &quot;▃▃▃&quot;
+
+
+# 音乐可视化配置:
+visualizer_output_name =                 &quot;FIFO&quot;
+visualizer_in_stereo =                     &quot;no&quot;
+visualizer_fifo_path =                     &quot;/tmp/mpd.fifo&quot;
+visualizer_sync_interval =                 &quot;10&quot;
+visualizer_type =                         &quot;spectrum&quot;
+visualizer_look =                         &quot;▋▋&quot;
+
+
+# 颜色:
+color1 =                                 &quot;white&quot;
+color2 =                                 &quot;red&quot;
+discard_colors_if_item_is_selected =     &quot;yes&quot;
+main_window_color =                     &quot;white&quot;
+header_window_color =                     &quot;4&quot;
+progressbar_color =                     &quot;cyan&quot;
+statusbar_color =                         &quot;red&quot;
+volume_color =                             &quot;4&quot;
+window_border_color =                     &quot;white&quot;
+active_window_border =                     &quot;4&quot;</code></pre><p>然后启动ncmpcpp看看吧 ：）</p><p>PS：如果播放没有声音，你可能需要重启</p><p>使用方法：</p><ul><li><code>1</code> - 当前播放列表</li><li><code>2</code> - 文件目录浏览器（鼠标左键点击或按空格可加入到播放列表）</li><li><code>3</code> - 数据库搜索</li><li><code>4</code> - 库</li><li><code>5</code> - 播放列表编辑器</li><li><code>6</code> - 标签编辑器</li><li><code>7</code> - 输出选择器</li><li><code>8</code> - 可视化（超级好看）</li><li><code>=</code> - 钟</li><li><code>F1</code> - 帮助</li><li><code>q</code> - 退出</li><li><code>f</code> - 向前看</li><li><code>b</code> - 向后看</li><li><code>\</code> - 切换视图</li><li><code>#</code> - 显示文件比特率</li><li><code>i</code> - 显示歌曲信息</li><li><code>I</code> - 显示艺术家信息</li><li><code>L</code> - 在可用歌词里混洗？？？</li><li><code>l</code> - 显示/隐藏当前歌曲的歌词</li><li><code>&gt;</code> - 下一首</li><li><code>&lt;</code> - 上一首</li><li><code>p</code> - 播放/暂停</li><li><code>+</code> - 增大音量</li><li><code>-</code> - 减小音量</li></ul>

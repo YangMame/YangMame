@@ -1,0 +1,5 @@
+{{ define "main" }}
+<section class="intro"><p class="eyebrow">NOTES & EXPLORATIONS</p><h1>记录，折腾，思考。</h1><p>关于 Linux、技术，以及生活里的点滴。</p></section>
+<section aria-label="文章列表">{{ $pages := .Paginate (where site.RegularPages "Type" "posts") }}{{ range $pages.Pages }}<article class="post-card"><time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "2006.01.02" }}</time><h2><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2><p>{{ .Plain | htmlUnescape | truncate 135 }}</p><a class="read" href="{{ .RelPermalink }}">继续阅读 <span aria-hidden="true">↗</span></a></article>{{ end }}</section>
+<nav class="pagination" aria-label="分页">{{ if $pages.HasPrev }}<a href="{{ $pages.Prev.URL }}">← 上一页</a>{{ end }}<span>{{ $pages.PageNumber }} / {{ $pages.TotalPages }}</span>{{ if $pages.HasNext }}<a href="{{ $pages.Next.URL }}">下一页 →</a>{{ end }}</nav>
+{{ end }}

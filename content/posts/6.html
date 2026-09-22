@@ -1,0 +1,10 @@
+{
+  "title": "Gentoo的一次系统更新记录",
+  "date": "2022-03-28T10:40:00+08:00",
+  "lastmod": "2026-04-19T23:15:25+08:00",
+  "url": "/2022-gentoo-upgrade-log.html",
+  "type": "posts",
+  "original_slug": "2022-gentoo-upgrade-log",
+  "typecho_id": 6
+}
+<p>最近闲下来上线了下很早之前装了Gentoo的vps，想着维护更新下系统，遇到了一些常见更新问题记录分享下</p><p>由于系统有段时间没更新了，系统里的portage只支持EAPI 7，python还是3.7版本。<br />最新的portage的EAPI已经到8了且最低要求3.8版本的python，直接更新<code>emerge -auvDN @world</code>是行不通的</p><p>直接运行<code>emerge --oneshot sys-apps/portage</code>会遇到EAPI的版本问题。</p><p>比较稳妥的办法是先在<code>make.conf</code>里改好想用的满足portage最低版本要求的新的python版本（<code>PYTHON_TARGETS</code>，记得删掉3.7的target）并单独更新python：<br /><code>PYTHON_TARGETS=&quot;python3_9&quot; emerge -av dev-lang/python:3.9</code></p><p>成功更新完python后就可以再单独更新portage了(注意这里用了<code>--nodeps</code>参数是用来跳过一些死依赖的)：<br /><code>PYTHON_TARGETS=&quot;python3_9&quot; emerge -av1O portage</code></p><p>更新完portage后又遇到了perl的更新问题，这个和portage一样跳过死循环单独更新即可：<br /><code>emerge -av1O perl</code><br />更新完后补上perl的依赖：<br /><code>perl-cleaner --all</code></p><p>最后更新@world应该就没有什么大问题了，无非就是处理下USE。<br />由于是跑服务的系统，这次的USE改动主要为加了条<code>-gui</code></p><p>最后就可以跑起<code>emerge -auvDN @world</code>了<br />记得最后<code>emerge --depclean</code></p>

@@ -1,0 +1,97 @@
+{
+  "title": "为树莓派3B交叉编译安装Gentoo",
+  "date": "2018-08-13T00:00:00+08:00",
+  "lastmod": "2026-04-19T23:15:01+08:00",
+  "url": "/Gentoo-rpi3.html",
+  "type": "posts",
+  "original_slug": "Gentoo-rpi3",
+  "typecho_id": 16
+}
+<p>本文章随时可能停止更新或未及时更新，仅作参考</p><h1>参考文章：</h1><p><a href="https://web.archive.org/web/20250613025921/https://wiki.gentoo.org/wiki/Raspberry_Pi_3_64_bit_Install">Raspberry Pi 3 64 bit Install</a></p><p><a href="https://web.archive.org/web/20250613025921/https://wiki.gentoo.org/wiki/Embedded_Handbook/General/Compiling_with_qemu_user_chroot">Embedded Handbook/General/Compiling with qemu user chroot</a></p><h1>准备：</h1><ul><li>树莓派3B</li><li>sd卡 &gt;=8G</li><li>读卡器</li><li>正常运行的Gentoo系统（其它系统请自行决策）</li></ul><h1>开始：</h1><h2>环境</h2><h3>Crossdev</h3><p>先安装好交叉编译环境：</p><pre><code>emerge --ask sys-devel/crossdev
+crossdev -t aarch64-unknown-linux-gnu</code></pre><p>如果提示：<code>error: please convert /etc/portage/package.env to a directory</code>则运行如下命令并重新运行<code>crossdev -t aarch64-unknown-linux-gnu</code>：</p><pre><code>mv /etc/portage/package.env /etc/portage/package.env_file
+mkdir /etc/portage/package.env
+mv /etc/portage/package.env_file /etc/portage/package.env</code></pre><p>运行<code>gcc-config -l</code>显示<code>aarch64-unknown-linux-gun-x.x.x</code>确认安装成功</p><h3>Qemu</h3><p>更改配置：</p><pre><code>echo app-emulation/qemu static-user &gt;&gt; /etc/portage/package.use
+echo 'QEMU_SOFTMMU_TARGETS=&quot;alpha aarch64 arm i386 mips mips64 mips64el mipsel ppc ppc64 s390x sh4 sh4eb sparc sparc64 x86_64&quot;' &gt;&gt; /etc/portage/make.conf
+echo 'QEMU_USER_TARGETS=&quot;alpha aarch64 arm armeb i386 mips mipsel ppc ppc64 ppc64abi32 s390x sh4 sh4eb sparc sparc32plus sparc64&quot;' &gt;&gt; /etc/portage/make.conf</code></pre><p>安装：<code>emerge --ask app-emulation/qemu</code></p><p>创建二进制包（重要）：<code>quickpkg app-emulation/qemu</code></p><p>假设你已正确配置好qemu相关的内核选项且已启用<code>CONFIG_BINFMT_MISC</code>：</p><pre><code>[ -d /proc/sys/fs/binfmt_misc ] || modprobe binfmt_misc
+[ -f /proc/sys/fs/binfmt_misc/register ] || mount binfmt_misc -t binfmt_misc /proc/sys/fs/binfmt_misc</code></pre><p>注册：</p><pre><code>echo ':aarch64:M::\x7fELF\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\xb7:\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff:/usr/bin/qemu-aarch64:' &gt; /proc/sys/fs/binfmt_misc/register</code></pre><p>启用并启动binfmt服务(如果不常用可以只启动）：</p><pre><code># openRC:
+rc-update add qemu-binfmt
+rc-service qemu-binfmt start
+# systemd:
+systemctl enable systemd-binfmt
+systemctl restart systemd-binfmt</code></pre><h2>编译内核&amp;驱动</h2><p>安装git（如果你没安装的话）：<code>emerge --ask dev-vcs/git</code></p><p>创建工作目录：<code>mkdir raspberrypi</code></p><p>克隆rpi的firmware：</p><pre><code>cd raspberrypi
+git clone https://github.com/raspberrypi/firmware</code></pre><p><em>PS：如果你的clone速度捉急。。。可以加上<code>--depth=1</code>参数</em></p><p>克隆rpi的内核源码：<code>git clone https://github.com/raspberrypi/linux</code></p><p>进入内核源码目录选择版本：</p><pre><code>cd linux
+git branch -a #查看最新的版本
+git checkout XXX # 这里的XXX换成最新版本的内核，比如：rpi-4.14.y</code></pre><p>生成rpi3内核的默认配置并打开配置界面：</p><pre><code>ARCH=arm64 CROSS_COMPILE=aarch64-unknown-linux-gnu- make bcmrpi3_defconfig
+ARCH=arm64 CROSS_COMPILE=aarch64-unknown-linux-gnu- make menuconfig</code></pre><p>在内核选项中：<code>CPU Power Management</code> ---&gt; <code>CPU Frequency scaling</code> ---&gt;  <code>Default CPUFreq governor (powersave)</code>  ---&gt;<br />选择为<code>performance</code></p><p>这里你也可以自己更改内核配置（如果你了解的话）</p><p>开始编译内核：<br /><code>ARCH=arm64 CROSS_COMPILE=aarch64-unknown-linux-gnu- make -jX #X换成你的核心数</code></p><h2>分区&amp;安装stage3</h2><p>sd卡插读卡器插电脑</p><p>使用你喜欢的分区工具调整为如下：</p><pre><code>/dev/sdX1    boot    vfat    128M
+/dev/sdX2    swap    &gt;=2G
+/dev/sdX3    ext4    free space</code></pre><p>格式化：</p><pre><code>mkfs -t vfat -F 32 /dev/sdX1
+mkswap /dev/sdX2
+mkfs -i 8192 -t ext4 /dev/sdX3 # wiki说这个-i 8192挺重要的</code></pre><p>挂载分区：</p><pre><code>mkdir /mnt/gentoo
+mount /dev/sdX3 /mnt/gentoo
+cd /mnt/gentoo</code></pre><p>从<a href="https://web.archive.org/web/20250613025921/http://distfiles.gentoo.org/experimental/arm64/">这里</a>下载最新的stage3并解压:</p><pre><code>wget http://distfiles.gentoo.org/experimental/arm64/`wget -q http://distfiles.gentoo.org/experimental/arm64/ &amp;&amp; grep -o stage3-arm64-.........tar.bz2 index.html | head -1`
+tar vxpf stage3-*.tar.bz2 --xattrs-include='*.*' --numeric-owner .</code></pre><h2>安装内核</h2><p>挂载boot分区：<code>mount /dev/sdX1 /mnt/gentoo/boot</code></p><p>将raspberrypi目录中的<code>/firmware/boot/*</code>复制到<code>/mnt/gentoo/boot</code>：<br /><code>cp -r path/to/raspberrypi/firmware/boot/* /mnt/gentoo/boot</code></p><p>安装内核：<code>cp /path/to/raspberrypi/linux/arch/arm64/boot/Image /mnt/gentoo/boot/kernel8.img</code></p><p>更换原32bit的设备树为64bit：</p><pre><code>mv /mnt/gentoo/boot/bcm2710-rpi-3-b.dtb /mnt/gentoo/boot/bcm2710-rpi-3-b.dtb_32
+cp /path/to/raspberrypi/linux/arch/arm64/boot/dts/broadcom/bcm2710-rpi-3-b.dtb /mnt/gentoo/boot</code></pre><p>安装内核模块：</p><pre><code>cd /path/to/raspberrypi/linux
+ARCH=arm64 CROSS_COMPILE=aarch64-unknown-linux-gnu- make modules_install INSTALL_MOD_PATH=/mnt/gentoo</code></pre><p>这时候应该确认下boot目录是否正确复制了文件</p><h2>Chroot进入系统</h2><p>为树莓派安装qemu：<code>ROOT=&quot;/mnt/gentoo&quot; emerge --usepkgonly --oneshot --nodeps qemu</code></p><p>创建并挂载必要目录：</p><pre><code>mkdir -p /mnt/gentoo/usr/portage
+mkdir -p /mnt/gentoo/var/tmp/portage
+mount --bind /usr/portage /mnt/gentoo/usr/portage
+mount --bind /var/tmp/portage /mnt/gentoo/var/tmp/portage
+
+mount --bind /proc /mnt/gentoo/proc
+mount --bind /sys /mnt/gentoo/sys
+mount --bind /dev /mnt/gentoo/dev
+mount --bind /dev/pts /mnt/gentoo/pts</code></pre><p>Chroot进入系统：<code>chroot /mnt/gentoo/ /bin/bash --login</code></p><h2>配置系统</h2><p>串口配置：<code>nano -w /etc/inittab</code><br />注释掉<code>f0:12345:respawn:/sbin/agetty 9600 ttyAMA0 vt100</code>并保存</p><p>添加udev规则：<code>nano -w /etc/udev/rules.d/99-com.rules</code><br />写入：</p><pre><code>SUBSYSTEM==&quot;input&quot;, GROUP=&quot;input&quot;, MODE=&quot;0660&quot;
+SUBSYSTEM==&quot;i2c-dev&quot;, GROUP=&quot;i2c&quot;, MODE=&quot;0660&quot;
+SUBSYSTEM==&quot;spidev&quot;, GROUP=&quot;spi&quot;, MODE=&quot;0660&quot;
+SUBSYSTEM==&quot;bcm2835-gpiomem&quot;, GROUP=&quot;gpio&quot;, MODE=&quot;0660&quot;
+
+SUBSYSTEM==&quot;gpio*&quot;, PROGRAM=&quot;/bin/sh -c '\
+        chown -R root:gpio /sys/class/gpio &amp;&amp; chmod -R 770 /sys/class/gpio;\
+        chown -R root:gpio /sys/devices/virtual/gpio &amp;&amp; chmod -R 770 /sys/devices/virtual/gpio;\
+        chown -R root:gpio /sys$devpath &amp;&amp; chmod -R 770 /sys$devpath\
+'&quot;
+
+KERNEL==&quot;ttyAMA[01]&quot;, GROUP=&quot;dialout&quot;, PROGRAM=&quot;/bin/sh -c '\
+        ALIASES=/proc/device-tree/aliases; \
+        if cmp -s $ALIASES/uart0 $ALIASES/serial0; then \
+                echo 0;\
+        elif cmp -s $ALIASES/uart0 $ALIASES/serial1; then \
+                echo 1; \
+        else \
+                exit 1; \
+        fi\
+'&quot;, SYMLINK+=&quot;serial%c&quot;
+
+KERNEL==&quot;ttyS0&quot;, GROUP=&quot;dialout&quot;, PROGRAM=&quot;/bin/sh -c '\
+        ALIASES=/proc/device-tree/aliases; \
+        if cmp -s $ALIASES/uart1 $ALIASES/serial0; then \
+                echo 0; \
+        elif cmp -s $ALIASES/uart1 $ALIASES/serial1; then \
+                echo 1; \
+        else \
+                exit 1; \
+        fi \
+'&quot;, SYMLINK+=&quot;serial%c&quot;</code></pre><p>其它蓝牙什么的因为我暂时不需要就懒得写了（不坑人了）</p><p>更改root密码：<code>passwd</code></p><p>更改fstab：</p><pre><code>/dev/mmcblk0p1          /boot           vfat            noauto,noatime  1 2
+/dev/mmcblk0p2          none            swap            sw              0 0
+/dev/mmcblk0p3          /               ext4            noatime         0 1</code></pre><p>创建<code>/boot/config.txt</code>写入：</p><pre><code># have a properly sized image
+disable_overscan=1
+
+# lets have the VC4 hardware accelerated video
+dtoverlay=vc4-fkms-v3d
+
+# for sound over HDMI
+hdmi_drive=2
+
+# Enable audio (loads snd_bcm2835)
+dtparam=audioon
+
+# gpu_mem is for closed-source driver only; since we are only using the
+# open-source driver here, set low
+gpu_mem=16</code></pre><p>创建<code>/boot/cmdline.txt</code>并写入：</p><pre><code>root=/dev/mmcblk0p3 rootfstype=ext4 elevator=deadline fsck.repair=yes rootwait</code></pre><p>编辑<code>/etc/portage/make.conf</code>修改或添加：</p><pre><code>...
+CFLAGS=&quot;-march=armv8-a+crc -mtune=cortex-a53 -ftree-vectorize -O2 -pipe -fomit-frame-pointer&quot;
+...
+ACCEPT_KEYWORDS=&quot;~arm64&quot;</code></pre><h2>更新系统并安装必要软件</h2><p>更新系统：<code>emerge -auvDN @world</code></p><p>编辑<code>/etc/ssh/sshd_config</code>确保<code>PermitRootLogin</code>没有被注释且后面为<code>yes</code></p><p>安装网络管理器：</p><pre><code>echo net-misc/connman iptables &gt;&gt; /etc/portage/package.use
+emerge -av connman</code></pre><p>安装校时软件：<code>emerge -av chrony</code></p><p>配置时区：</p><pre><code>echo &quot;Asia/Shanghai&quot;  &gt; /etc/timezone
+emerge --ask sys-libs/timezone-data</code></pre><p>配置locale：</p><pre><code>echo &quot;en_US.UTF-8 UTF-8&quot; &gt; /etc/locale.gen
+locale-gen</code></pre><p>启用开机服务：</p><pre><code>rc-update add sshd default
+rc-update add connman default
+rc-update add chronyd default</code></pre><h1>插卡上电，查IP ssh连接</h1>

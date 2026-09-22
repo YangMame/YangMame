@@ -1,0 +1,43 @@
+{
+  "title": "关于内核的一些配置",
+  "date": "2019-01-01T08:00:00+08:00",
+  "lastmod": "2026-04-19T23:14:53+08:00",
+  "url": "/关于内核的一些配置.html",
+  "type": "posts",
+  "original_slug": "关于内核的一些配置",
+  "typecho_id": 10
+}
+<ul><li>更新：2019-01-23，增加“单独编译某个模块并加载使用”。</li></ul><h2>单独编译某个模块并加载使用</h2><p>比如我想编译<code>r8822be</code>模块（网卡驱动）,你需要先找到它的位置：</p><pre><code>cd /usr/src/linux
+grep -rin &quot;r8822be*&quot; | grep Makefile</code></pre><p>进入目录并编译模块：</p><pre><code>cd /usr/src/linux/drivers/staging/rtlwifi
+make CONFIG_R8822BE=m -C /lib/modules/`uname -r`/build/ M=$PWD modules</code></pre><p>在当前系统中加载模块：</p><pre><code>mkdir /lib/modules/`uname -r`/kernel/net/r8822be -p
+cp r8822be.{mod.o,ko} /lib/modules/`uname -r`/kernel/net/r8822be -v
+depmod
+modprobe r8822be</code></pre><h2>不使用initramfs启动系统</h2><p>进入目录并打开配置界面:</p><pre><code>cd /usr/src/linux
+make menuconfig
+</code></pre><p>进入 <code>General Setup</code>关掉<code>Initial RAM filesystem and RAM disk (initramfs/initrd) support</code></p><p>如果你的<code>fstab</code>用的是<code>UUID</code>,则建议先改成<code>/dev/sdX</code>的格式</p><p>把你所有的<code>modules</code>编译进内核即<code>built-in</code>状态</p><p>然后开始编译吧</p><p>这里我就不说GRUB相关的配置了,因为我没有尝试过,具体请看<a href="https://web.archive.org/web/20250714153553/https://www.dotslashlinux.com/2017/04/29/booting-the-linux-kernel-without-an-initrd-initramfs/">这里</a></p><p>用的是接下来要说的<code>efibootmgr</code>启动系统</p><h2>使用efibootmgr启动系统</h2><p>进入目录并打开配置界面:</p><pre><code>cd /usr/src/linux
+make menuconfig
+</code></pre><p>你要确保已启用所有必须的<code>efi</code>相关选项</p><p>进入 <code>Processor type and features</code> 搜索 <code>Built-in kernel command line</code> 并启用<br />然后会出现 <code>Built-in kernel command string</code><br />填入 <code>root=/dev/sda2</code>或者<code>root=PARTUUID=xxxx</code><br /><strong><em>sda2换成你实际的根目录所在分区或通过<code>blkid</code>查看根分区的<code>PARTUUID</code></em></strong></p><p>然后开始编译吧</p><p>首先确保<code>efibootmgr</code>已安装:</p><pre><code>emerge -av efibootmgr
+</code></pre><p>创建目录(可选):</p><pre><code>mkdir -p /boot/efi/boot
+</code></pre><p>将你的内核复制到对应目录(或者直接复制到boot):</p><pre><code>cp /boot/vmlinuz-* /boot/efi/boot/bootx64.efi
+</code></pre><p>查看是否已挂载<code>efivars</code>:</p><pre><code>mount | grep efivars
+</code></pre><p>重新挂载<code>efivars</code>为可读写:</p><pre><code>mount -o remount,rw -t efivarfs efivarfs /sys/firmware/efi/efivars
+</code></pre><p>这里说下<code>efibootmgr</code>的参数:</p><pre><code>--create (-c) 创建新的启动项
+--part (-p) efi分区的的序号,假设是/dev/sda2 则值为2
+--disk (-d) efi分区所在的磁盘,例如/dev/sda
+--label (-L) 启动项的名称
+--loader (-l) 可启动的efi文件所在处(efibootmgr路径用的是\不是/)
+</code></pre><p>示例添加启动项:</p><pre><code>efibootmgr --create --disk /dev/sda --part 2 --label &quot;Gentoo&quot; --loader &quot;\efi\boot\bootx64.efi&quot;
+</code></pre><p>这里也简单说下删除启动项的参数:</p><pre><code>--bootnum (-b) 启动项的识别号(通过efibootmgr -v查看,例如Boot0001则值为1)
+--delete-bootnum (-B) 进行删除
+</code></pre><p>删除示例:</p><pre><code>efibootmgr -b 2 -B
+</code></pre><h2>将<code>Intel-ucode</code>编译进内核</h2><p>进入目录并打开配置:</p><pre><code>cd /usr/src/linux
+make menuconfig
+</code></pre><p>确保在<code>Processor type and features</code>里已选上<code>CPU microcode loading support</code>和你对应的<code>CPU microcode loading support</code>例如Intel CPU选中<code>Intel microcode loading support</code></p><p>然后进入<code>Device Drivers</code> ---&gt; <code>Generic Driver Options</code>启用<code>Include in-kernel firmware blobs in kernel binary</code></p><p><code>Firmware blobs root directory</code>填入: <code>/lib/firmware/</code></p><p>另开终端安装源文件(注意查看这里的输出):</p><pre><code>emerge -av sys-firmware/intel-microcode
+</code></pre><p>查看你的microcode:</p><pre><code>dmesg | grep microcode
+</code></pre><p>查看<code>sig</code>值,例如<code>sig=0x306c3</code></p><p>然后查看<code>intel-ucode</code>文件:</p><pre><code>ls /lib/firmware/intel-ucode
+</code></pre><p>你就会找到与<code>sig</code>值对应的<code>06-3c-03</code>(前面安装时会输出对应的microcode)</p><p>最后按<code>/</code>搜索<code>EXTRA_FIRMWARE</code>并在此选项中填入:</p><pre><code>intel-ucode/06-3c-03
+</code></pre><p>如果在编译时无报错就OK了</p><p>更新内核重启之后运行<code>dmesg | grep microcode</code>应该看到类似如下的输出:</p><pre><code>[    0.000000] microcode: microcode updated early to revision 0x22, date = 2017-01-27
+[    0.579838] microcode: sig=0x306c3, pf=0x20, revision=0x22
+[    0.579948] microcode: Microcode Update Driver: v2.2.
+
+</code></pre><h2>等我想到,暂时就写这么多</h2>

@@ -1,0 +1,329 @@
+{
+  "title": "lFS安装教程",
+  "date": "2018-04-15T20:20:00+08:00",
+  "lastmod": "2026-04-19T23:15:07+08:00",
+  "url": "/lFS安装教程.html",
+  "type": "posts",
+  "original_slug": "lFS安装教程",
+  "typecho_id": 22
+}
+<h2>声明</h2><p>请不要把本文章当作你的主要参考处 请以官方<a href="https://web.archive.org/web/20250814082727/http://www.linuxfromscratch.org/lfs/view/stable-systemd/">文档</a>为准</p><p>除非你知道你在做什么 否则请跟着官方文档一步一步走</p><p>我的宿主系统为Gentoo，其他linux大小异同</p><h2>准备分区并下载源码</h2><p>检查系统是否符合要求：</p><pre><code>cat &gt; version-check.sh &lt;&lt; &quot;EOF&quot;
+#!/bin/bash
+# Simple script to list version numbers of critical development tools
+export LC_ALL=C
+bash --version | head -n1 | cut -d&quot; &quot; -f2-4
+MYSH=$(readlink -f /bin/sh)
+echo &quot;/bin/sh -&gt; $MYSH&quot;
+echo $MYSH | grep -q bash || echo &quot;ERROR: /bin/sh does not point to bash&quot;
+unset MYSH
+
+echo -n &quot;Binutils: &quot;; ld --version | head -n1 | cut -d&quot; &quot; -f3-
+bison --version | head -n1
+
+if [ -h /usr/bin/yacc ]; then
+  echo &quot;/usr/bin/yacc -&gt; `readlink -f /usr/bin/yacc`&quot;;
+elif [ -x /usr/bin/yacc ]; then
+  echo yacc is `/usr/bin/yacc --version | head -n1`
+else
+  echo &quot;yacc not found&quot; 
+fi
+
+bzip2 --version 2&gt;&amp;1 &lt; /dev/null | head -n1 | cut -d&quot; &quot; -f1,6-
+echo -n &quot;Coreutils: &quot;; chown --version | head -n1 | cut -d&quot;)&quot; -f2
+diff --version | head -n1
+find --version | head -n1
+gawk --version | head -n1
+
+if [ -h /usr/bin/awk ]; then
+  echo &quot;/usr/bin/awk -&gt; `readlink -f /usr/bin/awk`&quot;;
+elif [ -x /usr/bin/awk ]; then
+  echo awk is `/usr/bin/awk --version | head -n1`
+else 
+  echo &quot;awk not found&quot; 
+fi
+
+gcc --version | head -n1
+g++ --version | head -n1
+ldd --version | head -n1 | cut -d&quot; &quot; -f2-  # glibc version
+grep --version | head -n1
+gzip --version | head -n1
+cat /proc/version
+m4 --version | head -n1
+make --version | head -n1
+patch --version | head -n1
+echo Perl `perl -V:version`
+sed --version | head -n1
+tar --version | head -n1
+makeinfo --version | head -n1
+xz --version | head -n1
+
+echo 'int main(){}' &gt; dummy.c &amp;&amp; g++ -o dummy dummy.c
+if [ -x dummy ]
+  then echo &quot;g++ compilation OK&quot;;
+  else echo &quot;g++ compilation failed&quot;; fi
+rm -f dummy.c dummy
+EOF
+
+bash version-check.sh</code></pre><p>确保所有需要的包已安装且达到最低版本要求后再继续</p><p>创建挂载的目录</p><pre><code>mkdir /mnt/lfs</code></pre><p>声明变量</p><pre><code>export LFS=/mnt/lfs</code></pre><p>挂载分区(需事先进行分区 格式化）</p><pre><code>mount /dev/xxxx $LFS</code></pre><p>创建编译源码目录</p><pre><code>mkdir -v $LFS/sources&amp;&amp;chmod -v a+wt $LFS/sources</code></pre><p>下载源码列表</p><pre><code>wget http://www.linuxfromscratch.org/lfs/view/stable-systemd/wget-list</code></pre><p>下载源码（建议事先export声明代理）</p><pre><code>wget --input-file=wget-list --continue --directory-prefix=$LFS/sources</code></pre><p>校验md5（确保所有源码已下载且校验OK）</p><pre><code>pushd $LFS/sources
+wget http://www.linuxfromscratch.org/lfs/view/stable-systemd/md5sums
+md5sum -c md5sums
+popd</code></pre><p>创建编译目录</p><pre><code>mkdir -v $LFS/tools
+ln -sv $LFS/tools /</code></pre><h2>添加用户并开始编译</h2><p>添加lfs用户：</p><pre><code>groupadd lfs
+useradd -s /bin/bash -g lfs -m -k /dev/null lfs
+passwd lfs #设置lfs用户的密码</code></pre><p>更改目录权限并切换到lfs用户：</p><pre><code>chown -v lfs $LFS/tools
+chown -v lfs $LFS/sources
+su - lfs</code></pre><p>设置lfs用户的环境变量：</p><pre><code>cat &gt; ~/.bash_profile &lt;&lt; &quot;EOF&quot;
+exec env -i HOME=$HOME TERM=$TERM PS1='\u:\w\$ ' /bin/bash
+EOF
+
+cat &gt; ~/.bashrc &lt;&lt; &quot;EOF&quot;
+set +h
+umask 022
+LFS=/mnt/lfs
+LC_ALL=POSIX
+LFS_TGT=$(uname -m)-lfs-linux-gnu
+PATH=/tools/bin:/bin:/usr/bin
+export LFS LC_ALL LFS_TGT PATH
+EOF
+
+source ~/.bash_profile</code></pre><h2>编译临时系统</h2><p>设置编译线程数（建议设置为CPU的核心数+1）：</p><pre><code>export MAKEFLAGS='-j X' # 将X替换为数字</code></pre><p>然后到了最关键的地方</p><p>这里我当然不会一个一个说XXX包怎么编译安装</p><p>首先进入工作目录：</p><pre><code>cd $LFS/sources</code></pre><p>示例编译个Binutils（具体请看官方文档，请善用Tab补全）:</p><pre><code>tar -xf binutils-2.30.tar.xz # 解压
+cd binutils-2.30 # 进入解压目录
+
+mkdir -v build # 创建编译目录
+cd build # 进入编译目录
+
+../configure --prefix=/tools            \
+             --with-sysroot=$LFS        \
+             --with-lib-path=/tools/lib \
+             --target=$LFS_TGT          \
+             --disable-nls              \
+             --disable-werror # 准备编译
+
+make # 如果你没有设置线程数则make -j X
+
+case $(uname -m) in
+  x86_64) mkdir -v /tools/lib &amp;&amp; ln -sv lib /tools/lib64 ;;
+esac # 在X86_64上的配置
+
+make install # 安装
+
+cd ../.. # 返回目录
+rm -rf binutils-2.30 # 清理编译目录（重要！如果不清理，之后编译很可能出错）</code></pre><p>其它包也是类似如此一路编译，但是具体的编译/安装步骤还是需要跟着官方文档走（可以不进行测试）</p><p>有些章节是小包，被包括在别的包里面<br />比如Libstdc++是被GCC包括的（它开头也说明了 需要自己注意）</p><p>有些包需要编译俩次，所以需要删除目录防止编译出错</p><p>编译完成之后可以清理下并恢复权限：</p><pre><code>exit # 退出lfs用户回到root用户
+
+strip --strip-debug /tools/lib/*
+/usr/bin/strip --strip-unneeded /tools/{,s}bin/*
+
+rm -rf /tools/{,share}/{info,man,doc}
+find /tools/{lib,libexec} -name \*.la -delete
+
+chown -R root:root $LFS/tools # 恢复root权限</code></pre><h2>进入Chroot环境</h2><p>创建挂载目录并挂载：</p><pre><code>mkdir -pv $LFS/{dev,proc,sys,run}
+
+mknod -m 600 $LFS/dev/console c 5 1
+mknod -m 666 $LFS/dev/null c 1 3
+
+mount -v --bind /dev $LFS/dev
+
+mount -vt devpts devpts $LFS/dev/pts -o gid=5,mode=620
+mount -vt proc proc $LFS/proc
+mount -vt sysfs sysfs $LFS/sys
+mount -vt tmpfs tmpfs $LFS/run
+
+if [ -h $LFS/dev/shm ]; then
+  mkdir -pv $LFS/$(readlink $LFS/dev/shm)
+fi</code></pre><p>进入Chroot环境：</p><pre><code>chroot &quot;$LFS&quot; /tools/bin/env -i \
+    HOME=/root                  \
+    TERM=&quot;$TERM&quot;                \
+    PS1='(lfs chroot) \u:\w\$ ' \
+    PATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin \
+    /tools/bin/bash --login +h</code></pre><p>创建必要目录：</p><pre><code>mkdir -pv /{bin,boot,etc/{opt,sysconfig},home,lib/firmware,mnt,opt}
+mkdir -pv /{media/{floppy,cdrom},sbin,srv,var}
+install -dv -m 0750 /root
+install -dv -m 1777 /tmp /var/tmp
+mkdir -pv /usr/{,local/}{bin,include,lib,sbin,src}
+mkdir -pv /usr/{,local/}share/{color,dict,doc,info,locale,man}
+mkdir -v  /usr/{,local/}share/{misc,terminfo,zoneinfo}
+mkdir -v  /usr/libexec
+mkdir -pv /usr/{,local/}share/man/man{1..8}
+
+case $(uname -m) in
+ x86_64) mkdir -v /lib64 ;;
+esac
+
+mkdir -v /var/{log,mail,spool}
+ln -sv /run /var/run
+ln -sv /run/lock /var/lock
+mkdir -pv /var/{opt,cache,lib/{color,misc,locate},local}</code></pre><p>创建必要文件和链接：</p><pre><code>ln -sv /tools/bin/{bash,cat,dd,echo,ln,pwd,rm,stty} /bin
+ln -sv /tools/bin/{env,install,perl} /usr/bin
+ln -sv /tools/lib/libgcc_s.so{,.1} /usr/lib
+ln -sv /tools/lib/libstdc++.{a,so{,.6}} /usr/lib
+for lib in blkid lzma mount uuid
+do
+    ln -sv /tools/lib/lib$lib.so* /usr/lib
+done
+ln -svf /tools/include/blkid    /usr/include
+ln -svf /tools/include/libmount /usr/include
+ln -svf /tools/include/uuid     /usr/include
+install -vdm755 /usr/lib/pkgconfig
+for pc in blkid mount uuid
+do
+    sed 's@tools@usr@g' /tools/lib/pkgconfig/${pc}.pc \
+        &gt; /usr/lib/pkgconfig/${pc}.pc
+done
+ln -sv bash /bin/sh
+
+ln -sv /proc/self/mounts /etc/mtab
+
+cat &gt; /etc/passwd &lt;&lt; &quot;EOF&quot;
+root&#10060;0:0:root:/root:/bin/bash
+bin&#10060;1:1:bin:/dev/null:/bin/false
+daemon&#10060;6:6:Daemon User:/dev/null:/bin/false
+messagebus&#10060;18:18:D-Bus Message Daemon User:/var/run/dbus:/bin/false
+systemd-bus-proxy&#10060;72:72:systemd Bus Proxy:/:/bin/false
+systemd-journal-gateway&#10060;73:73:systemd Journal Gateway:/:/bin/false
+systemd-journal-remote&#10060;74:74:systemd Journal Remote:/:/bin/false
+systemd-journal-upload&#10060;75:75:systemd Journal Upload:/:/bin/false
+systemd-network&#10060;76:76:systemd Network Management:/:/bin/false
+systemd-resolve&#10060;77:77:systemd Resolver:/:/bin/false
+systemd-timesync&#10060;78:78:systemd Time Synchronization:/:/bin/false
+systemd-coredump&#10060;79:79:systemd Core Dumper:/:/bin/false
+nobody&#10060;99:99:Unprivileged User:/dev/null:/bin/false
+EOF # passwd文件（重要）
+
+cat &gt; /etc/group &lt;&lt; &quot;EOF&quot;
+root&#10060;0:
+bin&#10060;1:daemon
+sys&#10060;2:
+kmem&#10060;3:
+tape&#10060;4:
+tty&#10060;5:
+daemon&#10060;6:
+floppy&#10060;7:
+disk&#10060;8:
+lp&#10060;9:
+dialout&#10060;10:
+audio&#10060;11:
+video&#10060;12:
+utmp&#10060;13:
+usb&#10060;14:
+cdrom&#10060;15:
+adm&#10060;16:
+messagebus&#10060;18:
+systemd-journal&#10060;23:
+input&#10060;24:
+mail&#10060;34:
+kvm&#10060;61:
+systemd-bus-proxy&#10060;72:
+systemd-journal-gateway&#10060;73:
+systemd-journal-remote&#10060;74:
+systemd-journal-upload&#10060;75:
+systemd-network&#10060;76:
+systemd-resolve&#10060;77:
+systemd-timesync&#10060;78:
+systemd-coredump&#10060;79:
+nogroup&#10060;99:
+users&#10060;999:
+EOF # group文件（重要）</code></pre><p>重新登录并设置目录权限：</p><pre><code>exec /tools/bin/bash --login +h
+
+touch /var/log/{btmp,lastlog,faillog,wtmp}
+chgrp -v utmp /var/log/lastlog
+chmod -v 664  /var/log/lastlog
+chmod -v 600  /var/log/btmp</code></pre><h2>编译安装基本系统</h2><p>这里和编译临时系统部分是差不多的，不过到了这里就基本不会出错了，但是包多了很多，你可以自行选择剔除不需要的包</p><p>过掉了前面的几个包之后需要调整工具链：</p><pre><code>mv -v /tools/bin/{ld,ld-old}
+mv -v /tools/$(uname -m)-pc-linux-gnu/bin/{ld,ld-old}
+mv -v /tools/bin/{ld-new,ld}
+ln -sv /tools/bin/ld /tools/$(uname -m)-pc-linux-gnu/bin/ld
+
+gcc -dumpspecs | sed -e 's@/tools@@g'                   \
+    -e '/\*startfile_prefix_spec:/{n;s@.*@/usr/lib/ @}' \
+    -e '/\*cpp:/{n;s@$@ -isystem /usr/include@}' &gt;      \
+    `dirname $(gcc --print-libgcc-file-name)`/specs</code></pre><p>在这里最好检查一下：</p><pre><code>echo 'int main(){}' &gt; dummy.c
+cc dummy.c -v -Wl,--verbose &amp;&gt; dummy.log
+
+readelf -l a.out | grep ': /lib'
+grep -B1 '^ /usr/include' dummy.log
+grep 'SEARCH.*/usr/lib' dummy.log |sed 's|; |\n|g'
+grep &quot;/lib.*/libc.so.6 &quot; dummy.log
+grep found dummy.log</code></pre><p>正常情况应该显示这些：</p><pre><code>[Requesting program interpreter: /lib64/ld-linux-x86-64.so.2]
+
+/usr/lib/../lib/crt1.o succeeded
+/usr/lib/../lib/crti.o succeeded
+/usr/lib/../lib/crtn.o succeeded
+
+#include &lt;...&gt; search starts here:
+ /usr/include
+
+SEARCH_DIR(&quot;/usr/lib&quot;)
+SEARCH_DIR(&quot;/lib&quot;)
+
+attempt to open /lib/libc.so.6 succeeded
+
+found ld-linux-x86-64.so.2 at /lib/ld-linux-x86-64.so.2</code></pre><p>删除测试文件：</p><pre><code>rm -v dummy.c a.out dummy.log</code></pre><p>之后就是继续解包 切换目录 编译 安装 配置 删除编译目录了（同样可以不进行测试）</p><p>但是注意不要一昧的复制粘贴</p><p>比如Groff包：</p><pre><code>PAGE=&lt;paper_size&gt; ./configure --prefix=/usr</code></pre><p>需要指定&lt;paper_size&gt;：</p><pre><code>PAGE=A4 ./configure --prefix=/usr
+make -j1 # 且必须单线程编译
+make install</code></pre><p><strong><em>PS：GRUB和VIM你可以选择不安装</em></strong></p><p>最后还需要调整工具链：</p><pre><code>save_lib=&quot;ld-2.27.so libc-2.27.so libpthread-2.27.so libthread_db-1.0.so&quot;
+
+cd /lib
+
+for LIB in $save_lib; do
+    objcopy --only-keep-debug $LIB $LIB.dbg 
+    strip --strip-unneeded $LIB
+    objcopy --add-gnu-debuglink=$LIB.dbg $LIB 
+done    
+
+save_usrlib=&quot;libquadmath.so.0.0.0 libstdc++.so.6.0.24
+             libmpx.so.2.0.1 libmpxwrappers.so.2.0.1 libitm.so.1.0.0
+             libcilkrts.so.5.0.0 libatomic.so.1.2.0&quot;
+
+cd /usr/lib
+
+for LIB in $save_usrlib; do
+    objcopy --only-keep-debug $LIB $LIB.dbg
+    strip --strip-unneeded $LIB
+    objcopy --add-gnu-debuglink=$LIB.dbg $LIB
+done
+
+unset LIB save_lib save_usrlib
+
+logout
+
+chroot $LFS /tools/bin/env -i          \
+    HOME=/root TERM=$TERM              \
+    PS1='(lfs chroot) \u:\w\$ '        \
+    PATH=/bin:/usr/bin:/sbin:/usr/sbin \
+    /tools/bin/bash --login
+
+/tools/bin/find /usr/lib -type f -name \*.a \
+   -exec /tools/bin/strip --strip-debug {} ';'
+
+/tools/bin/find /lib /usr/lib -type f \( -name \*.so* -a ! -name \*dbg \) \
+   -exec /tools/bin/strip --strip-unneeded {} ';'
+
+/tools/bin/find /{bin,sbin} /usr/{bin,sbin,libexec} -type f \
+    -exec /tools/bin/strip --strip-all {} ';'</code></pre><p>清理：</p><pre><code>rm -rf /tmp/*
+
+chroot &quot;$LFS&quot; /usr/bin/env -i          \
+    HOME=/root TERM=&quot;$TERM&quot;            \
+    PS1='(lfs chroot) \u:\w\$ '        \
+    PATH=/bin:/usr/bin:/sbin:/usr/sbin \
+    /bin/bash --login
+
+rm -f /usr/lib/lib{bfd,opcodes}.a
+rm -f /usr/lib/libbz2.a
+rm -f /usr/lib/lib{com_err,e2p,ext2fs,ss}.a
+rm -f /usr/lib/libltdl.a
+rm -f /usr/lib/libfl.a
+rm -f /usr/lib/libfl_pic.a
+rm -f /usr/lib/libz.a 
+find /usr/lib -name \*.la -delete # 可选删除</code></pre><h2>配置系统</h2><p>到了这里基本没什么好说的，跟着官方文档走一遍就是了 :-P<br />(如果你又不了解的地方评论给我就行 我会加上说明）</p><h2>让LFS可启动</h2><p>到这里就是先编译内核了</p><p>至于配置内核我就不累赘了（我<a href="{{< siteurl "Gentoo安装教程.html#%E9%85%8D%E7%BD%AE%E7%BC%96%E8%AF%91%E5%AE%89%E8%A3%85%E5%86%85%E6%A0%B8" >}}">博客有写</a>）</p><p>但是官方文档没说UEFI咋整</p><p>这里推荐在宿主系统上<a href="{{< siteurl "关于内核的一些配置.html#%E4%BD%BF%E7%94%A8efibootmgr%E5%90%AF%E5%8A%A8%E7%B3%BB%E7%BB%9F" >}}">安装efibootmgr添加LFS的启动项</a></p><p>卸载一波文件系统就可以重启系统看看能不能正常启动了：</p><pre><code>logout
+
+umount -v $LFS/dev/pts
+umount -v $LFS/dev
+umount -v $LFS/run
+umount -v $LFS/proc
+umount -v $LFS/sys
+
+umount -v $LFS
+
+umount -v $LFS/usr
+umount -v $LFS/home
+umount -v $LFS
+
+shutdown -r now</code></pre><p>最后你就可以按这个套路去折腾BLFS了，嘿嘿嘿</p>

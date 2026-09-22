@@ -1,0 +1,38 @@
+{
+  "title": "在U盘安装加密的Linux系统",
+  "date": "2018-07-21T09:40:00+08:00",
+  "lastmod": "2026-04-19T23:14:59+08:00",
+  "url": "/在U盘安装加密的Linux系统.html",
+  "type": "posts",
+  "original_slug": "在U盘安装加密的Linux系统",
+  "typecho_id": 14
+}
+<h1>适用场景：外出需要电脑，却没有携带自己的电脑，且不能信任能找到的电脑的环境；不想在外泄漏隐身；不是自己想使用的系统/环境。</h1><h1>教程目标：制作一个可以保留更改的运行Linux的U盘，加密根目录(boot除外)，开机可以选择ramroot模式启动(将整个Linux系统加载在内存，适合在大内存机器且不想保留更改时使用)</h1><h1>需要的东西：</h1><ul><li>一个正常运行的Arch Linux</li><li>一个U盘（推荐3.1，3.0和2.0可能体验较差）</li></ul><h1>需要用到的软件/命令：</h1><ul><li>cryptsetup</li><li>arch-install-scripts(可以直接通过pacman安装）</li></ul><h1>开始</h1><p>以下过程默认在root用户下运行</p><h2>配置分区</h2><p>这里就简单说下如何分区，至于用什么工具分区随你喜欢</p><p>这里的/dev/sdb将在之后的教程当作U盘使用（请自己注意更换)</p><pre><code>分区类型：dos，以下分区皆为主分区(primary）
+分区--------&gt;挂载点--&gt;大小---&gt;类型
+/dev/sdb1---&gt;/boot---&gt;128M---&gt;EFI Filesystem(需要设置为可启动(bootable)）
+/dev/sdb2---&gt;/-------&gt;Free---&gt;Linux</code></pre><p>创建加密LUKS(需要输入大写yes然后输入你的密码/口令)：</p><pre><code>cryptsetup luksFormat --type luks2 /dev/sdb2</code></pre><p>打开LUKS并创建配置LVM(需要输入密码/口令)：</p><pre><code>cryptsetup open --type luks2 /dev/sdb2 cryptlvm
+pvcreate /dev/mapper/cryptlvm
+vgcreate System /dev/mapper/cryptlvm
+lvcreate -L 8G System -n root # 这里是根分区，一般8G够用
+lvcreate -l 100%FREE System -n data # 这里是数据分区，用于存放重要资料（为了和根分区区分，建议不要写入fstab让它默认不挂载）</code></pre><p>格式化：</p><pre><code>mkfs -t vfat -F 32 /dev/sdb1
+mkfs -i 8192 -t ext4 /dev/System/root
+mkfs -i 8192 -t ext4 /dev/System/data</code></pre><p>挂载分区：</p><pre><code>mount -t ext4 /dev/System/root /mnt
+mkdir -p /mnt/boot
+mount /dev/sdb1 /mnt/boot</code></pre><h2>安装系统</h2><p>如果你在使用Arch Linux的Live CD安装，你可能需要修改<code>/etc/pacman.d/mirrorlist</code>选择镜像站</p><pre><code>pacstrap -i /mnt base base-devel linux # 这里建议不安装默认的linux，安装linux-hardened内核
+genfstab -U -p /mnt &gt;&gt; /mnt/etc/fstab</code></pre><p>进入chroot环境并安装内核：</p><pre><code>arch-chroot /mnt
+source /etc/profile
+pacman -S linux-hardened</code></pre><p>配置locale:</p><pre><code>TMP=&quot;en_US.UTF-8&quot; # 将这里改为你想使用的语言（建议en）
+echo &quot;${TMP} UTF-8&quot; &gt; /etc/locale.gen
+locale-gen
+echo LANG=${TMP} &gt; /etc/locale.conf</code></pre><p>至于时区这里示例使用中国时区：</p><pre><code>ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+hwclock --systohc --utc</code></pre><p>更改root密码与主机名：</p><pre><code>passwd
+echo Live &gt; /etc/hostname</code></pre><p>编辑<code>/etc/mkinitcpio.conf</code>在<code>HOOKS</code>中加入<code>keyboard</code> <code>keymap</code> <code>encrypt</code>以支持加密（需要注意顺序）：</p><pre><code># 示例
+HOOKS=(base udev autodetect keyboard keymap consolefont modconf block encrypt lvm2 filesystems fsck)</code></pre><p>添加ramroot支持：</p><pre><code>pacman -S git
+git clone https://github.com/arcmags/ramroot
+cd ramroot
+./ramroot enable -r 这里替换为/dev/System/root的UUID -b 这里替换为/dev/sdb1的UUID  # 注意，这里生成initramfs时会报错（如果你使用linux-hardened的话）,可以暂时忽略</code></pre><p>重新生成initramfs：</p><pre><code>mkinitcpio -p linux-hardened</code></pre><p>安装引导:</p><pre><code>pacman -S grub efibootmgr
+grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=BOOT # 这里会有非GPT报错可以忽略
+cp /boot/EFI/BOOT/grubx64.efi /boot/EFI/BOOT/BOOTX64.efi # 防止BIOS不认
+grub-install --target=i386-pc /dev/sdb</code></pre><p>另开终端运行<code>blkid</code>复制<code>/dev/sdb2</code>的UUID（注意不要和<code>/dev/mapper/cryptroot</code>的UUID混淆）</p><p>回到原终端编辑<code>/etc/default/grub</code>在<code>GRUB_CMDLINE_LINUX=&quot;&quot;</code>加入：</p><pre><code>cryptdevice=UUID=这里换成刚刚复制的UUID:cryptlvm root=/dev/System/root</code></pre><p>生成<code>grub.cfg</code>:</p><pre><code>grub-mkconfig -o /boot/grub/grub.cfg # 这里会报lvm错误，可以忽略</code></pre><p>安装网络管理器：</p><pre><code># 这里建议使用connman或networkmanager
+pacman -S connman bluez wpa_supplicant
+systemctl enable connman</code></pre><p>到了这里 你就可以重启看看能不能启动了</p><h1>结尾</h1><p>最后无非是做一些自己的配置，这里就不多说了，就说说一些建议</p><p>安装配置完成之后，根目录使用空间不大或内存够用的话 建议使用ramroot启动，启动之后你就可以拔掉U盘了（这样启动不会保留对根目录的更改）。</p><p>关于分区，之所以分个/data，默认不挂载，这样使用ramroot启动时可以保证数据隐私安全（所以建议新建俩个用户），正常启动时可以手动挂载以保存/访问数据。至于怎么玩随你喜欢了。</p>
